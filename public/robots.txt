@@ -1,0 +1,16 @@
+# robots.txt for Vortex Platform
+
+# Block all web crawlers from sensitive areas
+User-agent: *
+Disallow: /dashboard/
+Disallow: /vote/
+Disallow: /auth/
+Disallow: /biometrics/
+Disallow: /settings/
+
+# Allow crawling of public pages (if any)
+Allow: /public/
+Allow: /assets/
+
+# Optional: sitemap
+Sitemap: https://yourdomain.com/sitemap.xml

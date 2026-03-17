@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Stack+Sans+Headline:wght@200..700&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Stack+Sans+Headline:wght@200..700&display=swap');
+
+*{
+  font-family: "Poppins", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  /* padding: 0;
+  margin: 0; */
+  box-sizing: border-box;
+}
+
+*::-webkit-scrollbar{
+  display: hidden;
+}
+
+.index{
+  z-index: 10;
+}
+
+/* tailwind.config.ts or globals.css */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE + Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, new Edge */
+  }
+}
+
+
+animation-delay-300 {
+  animation-delay: 300ms;
+}
+animation-delay-600 {
+  animation-delay: 600ms;
+}
+
+.header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+}
+
+.badge{
+  padding: 0 8px;
+}
+
+.card{
+  height: 6rem;
+  padding: 4px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.separate{
+  
+  margin: 1.25rem 1rem 1rem;
+}
+
+.realtime{
+  margin: 0 1rem 1rem;
+  padding: 1rem;
+}
+.candidate-status{
+  margin-bottom: .5rem;
+}
+
+.graph{
+  padding: 1rem;
+  text-align: center;
+  font-size: 15px;
+margin: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+
+}
+
+.p-4{
+  padding: 1rem;
+}
+.p-2{
+  padding: .2rem;
+}
+.m-1{
+ 
+  margin: 0 1rem 1rem;
+}
+.px{
+  padding: 0 1rem;
+}
+.mt{
+  margin: 1rem 0;
+}
+.ml{
+  left: 15%;
+}
+.mll{
+  left: 25%;
+}
