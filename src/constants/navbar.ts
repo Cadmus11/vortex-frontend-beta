@@ -3,40 +3,63 @@
 export const navList  = [
     {
         title: "Dashboard",
-        link:'/dashboard'
+        link:'/admin/dashboard'
     },{
-        title: 'Parties',
-        link: '/parties'
-    },{
-        title: "Add Candidate",
-        link: '/admin/add-candidate'
+        title: "Add Candidates",
+        link: '/admin//add-candidate'
     },{
         title: "Election Setup",
-        link: '/election'
+        link: '/admin/election'
     },{
         title: "candidate management",
         link: '/admin/candidate-mgt'
     },{
         title: 'Admin Info',
-        link: '/admin/info'
+        link: '/admin-info'
     },{
         title: "user Info",
-        link: '/info'
+        link: '/voter-info'
     },{
         title: "voting Panel",
-        link: '/vote'
+        link: '/cast-votes'
     },{
         title: "profile",
-        link: '/profile'
+        link: '/user-profile'
     },{
         title: "campaigns",
-        link: '/campaign'
+        link: '/campaigns'
     },{
         title: "candidates",
         link: "/candidates"
     },{
         title: "Face Auth",
-        link: '/face'
+        link: '/face-verification'
+    },{
+        title: "settings",
+        link: '/settings'
+    }
+]
+
+
+export const voterList = [
+    {
+        title: "Dashboard",
+        link:'/dashboard'
+    } ,{
+        title: "voting Panel",
+        link: '/cast-votes'
+    },{
+        title: "campaigns",
+        link: '/campaigns'
+    },{
+          title: "user Info",
+        link: '/voter-info'
+    },{
+        title: "Face Auth",
+        link: '/face-verification'
+    },{
+        title: "profile",
+        link: '/user-profile'
     },{
         title: "settings",
         link: '/settings'

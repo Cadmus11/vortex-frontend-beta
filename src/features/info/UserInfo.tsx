@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { userInstructions } from "@/constants"
 import { ThemeToggle } from "@/context/ThemeToggler"
+import Menu  from "@/components/custom/Menu"
 
 
 const UserInfo = () => {
@@ -8,7 +9,12 @@ const UserInfo = () => {
     <>
     <div className="flex justify-between items-center p-4">
     <h1 className="text-xl capitalize   ">User Instructions</h1>
-    <ThemeToggle/>
+    <div className="flex justify-center items-center gap-3">
+
+    
+    <span className="max-sm:hidden"><ThemeToggle/></span>
+    <Menu/>
+    </div>
     </div>
     
  {

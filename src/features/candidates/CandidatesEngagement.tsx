@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Heart, MessageCircle } from "lucide-react"
 import { useState } from "react"
+import Menu from "@/components/custom/Menu"
 
 interface Candidate {
   id: string
@@ -70,11 +71,14 @@ export default function CandidatesEngagementPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Candidate Engagement</h1>
+      <div className="flex justify-between items-center max-sm:flex-col max-sm:gap-4">
+        <div className="flex items-center gap-2 max-sm:flex-row-reverse max-sm:justify-between max-sm:w-full">
+        <Menu/>
+        <h1 className="text-2xl font-bold">Campaigns</h1>
+        </div>
         <Input
           placeholder="Search candidate..."
-          className="w-64"
+          className="w-64 max-sm:w-9/10"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

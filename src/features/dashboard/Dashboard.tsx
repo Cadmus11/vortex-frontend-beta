@@ -72,15 +72,16 @@ export default function Dashboard() {
       {/* Header */}
       <header className="flex justify-between items-center p-4">
         <h1 className="text-lg flex items-center gap-3">
-          <Shield className="h-8 w-8 text-blue-600" />
-          Vortex Command Dashboard
+          <Shield className="h-8 w-8 text-blue-600 " />
+          
+          <span className="max-sm:hidden">Vortex Command Dashboard</span>
         </h1>
 
         <div className="flex items-center gap-4">
           <Badge className="bg-emerald-500 text-white">
             Live
           </Badge>
-          <ThemeToggle />
+         <span className="max-sm:hidden"> <ThemeToggle  /></span>
       <Menu/>
         </div>
       </header>

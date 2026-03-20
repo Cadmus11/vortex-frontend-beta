@@ -60,7 +60,7 @@ const VotingPanel = () => {
         </h1>
         <div className="flex gap-4">
           {selected && <Badge className="px bg-emerald-500">selected</Badge>}
-          <ThemeToggle />
+         <span className="max-sm:hidden"><ThemeToggle /></span> 
           <Menu />
         </div>
       </div>
