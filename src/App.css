@@ -1,23 +1,19 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Stack+Sans+Headline:wght@200..700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Stack+Sans+Headline:wght@200..700&display=swap");
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Stack+Sans+Headline:wght@200..700&display=swap');
-
-*{
+* {
   font-family: "Poppins", sans-serif;
   font-weight: 400;
   font-style: normal;
-  /* padding: 0;
-  margin: 0; */
   box-sizing: border-box;
 }
 
-*::-webkit-scrollbar{
+*::-webkit-scrollbar {
   display: hidden;
 }
 
-.index{
+.index {
   z-index: 10;
 }
 
@@ -25,13 +21,12 @@
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none; /* IE + Edge */
-    scrollbar-width: none;     /* Firefox */
+    scrollbar-width: none; /* Firefox */
   }
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;             /* Chrome, Safari, new Edge */
+    display: none; /* Chrome, Safari, new Edge */
   }
 }
-
 
 animation-delay-300 {
   animation-delay: 300ms;
@@ -40,18 +35,18 @@ animation-delay-600 {
   animation-delay: 600ms;
 }
 
-.header{
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px;
 }
 
-.badge{
+.badge {
   padding: 0 8px;
 }
 
-.card{
+.card {
   height: 6rem;
   padding: 4px;
   display: flex;
@@ -59,48 +54,45 @@ animation-delay-600 {
   align-items: center;
 }
 
-.separate{
-  
+.separate {
   margin: 1.25rem 1rem 1rem;
 }
 
-.realtime{
+.realtime {
   margin: 0 1rem 1rem;
   padding: 1rem;
 }
-.candidate-status{
-  margin-bottom: .5rem;
+.candidate-status {
+  margin-bottom: 0.5rem;
 }
 
-.graph{
+.graph {
   padding: 1rem;
   text-align: center;
   font-size: 15px;
-margin: 0 1rem 1rem;
+  margin: 0 1rem 1rem;
   display: flex;
   flex-direction: column;
-
 }
 
-.p-4{
+.p-4 {
   padding: 1rem;
 }
-.p-2{
-  padding: .2rem;
+.p-2 {
+  padding: 0.2rem;
 }
-.m-1{
- 
+.m-1 {
   margin: 0 1rem 1rem;
 }
-.px{
+.px {
   padding: 0 1rem;
 }
-.mt{
+.mt {
   margin: 1rem 0;
 }
-.ml{
+.ml {
   left: 15%;
 }
-.mll{
+.mll {
   left: 25%;
 }
