@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router"
 import '../App.css'
 import Layout from "./Layout"
 import { ThemeProvider } from "./ThemeProvider"
-import AppRoutes from "./routes"
+import AppProtectedRoutes from "./routes"
 
 
 
@@ -16,7 +16,7 @@ const AppCenter = () => {
     
       <BrowserRouter>
       <Layout>
-      <AppRoutes/>
+  <AppProtectedRoutes/>
       </Layout>
       </BrowserRouter>
     

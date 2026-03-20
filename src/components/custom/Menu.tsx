@@ -1,21 +1,25 @@
 
 
+import { fire, water } from "@/assets/images";
 import { navList } from "@/constants/navbar";
 import { ThemeToggle } from "@/context/ThemeToggler";
-import { MenuIcon, Shield, UserCircle, XCircle, VerifiedIcon } from "lucide-react";
-import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { MenuIcon, Shield, UserCircle, VerifiedIcon, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { fire, water } from "@/assets/images";
 
 
 
 const Menu = () => {
+  const {user} = useAuth()
 
 
   const [openMenu, setMenu] = useState<boolean | null>(false);
   const [userRole, setRole] = useState<boolean>(false);
   const [image, setImage] = useState<boolean>(false);
   const [verified, setVerified] = useState<boolean>(false);
+
+ 
 
   const id = 7;
 
@@ -26,9 +30,16 @@ const Menu = () => {
 
 
 
-  const confirmRole = () => {
-    setRole(true)
-  }
+useEffect(
+  ( )=>{
+    setRole(user?.role.toLowerCase() === "admin"? true : false)
+  
+  },
+  []
+)
+    
+
+
 
 
   return (
@@ -45,6 +56,7 @@ const Menu = () => {
               <span className="flex gap-2 items-center">
                 <UserCircle />
                 {userRole ? "admin" : "voter"}
+               
               </span>
               <span className="flex items-center gap-4">
                 <Shield />
