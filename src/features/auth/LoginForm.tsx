@@ -30,8 +30,7 @@ export default function LoginForm() {
             validationSchema={loginSchema}
             onSubmit={async (values, { setSubmitting }) => {
               try {
-                const data = await login(values.email, values.password);
-
+                const data: any = await login(values.email, values.password);
                 if (data?.user?.role === "admin") {
                   navigate("/admin/dashboard");
                 } else {
@@ -93,7 +92,6 @@ export default function LoginForm() {
                 </div>
 
                 {/* Login Button */}
-
                 <Button
                   type="submit"
                   className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-300 cursor-pointer"
