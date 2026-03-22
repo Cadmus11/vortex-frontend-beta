@@ -3,7 +3,7 @@ import { API_URL } from "@/features/auth/auth.service";
 
 import {
   createContext,
-  ReactNode,
+  // ReactNode,
   useContext,
   useEffect,
   useState,
@@ -62,7 +62,7 @@ function parseCookies(): { token: string | null; user: User | null } {
   return { token: null, user: null };
 }
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [{ token, user }, setAuth] = useState<{
     token: string | null;

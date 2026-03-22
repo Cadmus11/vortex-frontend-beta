@@ -11,6 +11,10 @@ import { ThemeToggle } from "@/context/ThemeToggler"
 import ReactECharts from "echarts-for-react"
 import {
   Activity,
+  Clock,
+  GroupIcon,
+  PersonStandingIcon,
+  ScanFace,
   Shield,
   Trophy,
   Users,
@@ -26,7 +30,13 @@ type Candidate = {
 }
 export default function Dashboard() {
   const [uptime] = useState(99.98)
-
+const date =new Date()
+const now = Date.now()
+const down = date.setDate(29)
+let downcount = down - now
+let days = downcount/1000/60/60/24
+let hours = downcount/1000/60 % 60
+let minutes = downcount/1000 % 60
   const [candidates, setCandidates] = useState<Candidate[]>([
     {
       id: 1,
@@ -98,15 +108,33 @@ export default function Dashboard() {
           value={votesCasted}
           icon={<Vote className="w-5 h-5" />}
         />
-        <StatCard
-          title="System Uptime"
-          value={`${uptime}%`}
-          icon={<Activity className="w-5 h-5" />}
-        />
+     
         <StatCard
           title="Leading Candidate"
           value={ranking[0]?.name ?? "—"}
           icon={<Trophy className="w-5 h-5" />}
+        />
+        <StatCard title="Total Positions"
+        value={5}
+        icon={<PersonStandingIcon/>}
+        />
+         <StatCard title="Verified Voters"
+        value={8000}
+        icon={<ScanFace/>}
+        />
+         <StatCard title="All Candidates"
+        value={15}
+        icon={<GroupIcon/>}
+        />
+           <StatCard
+          title="Election Countdown"
+          value={`${days}D ${hours}H ${minutes}M`}
+          icon={<Clock/>}
+        />
+           <StatCard
+          title="System Uptime"
+          value={`${uptime}%`}
+          icon={<Activity className="w-5 h-5" />}
         />
       </div>
 
@@ -211,11 +239,11 @@ function StatCard({
   icon: React.ReactNode
 }) {
   return (
-    <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-      <CardContent className="flex justify-between items-center p-4">
+    <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 ">
+      <CardContent className="flex justify-between items-center">
         <div>
           <p className="text-sm text-zinc-500">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-2xl font-extrabold">{value}</p>
         </div>
         <div className="p-3 bg-emerald-500/20 rounded-md  dark:bg-zinc-800">
           {icon}

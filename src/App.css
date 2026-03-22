@@ -35,7 +35,7 @@ animation-delay-600 {
   animation-delay: 600ms;
 }
 
-.header {
+/* .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -52,9 +52,9 @@ animation-delay-600 {
   display: flex;
   justify-content: space-around;
   align-items: center;
-}
+} */
 
-.separate {
+/* .separate {
   margin: 1.25rem 1rem 1rem;
 }
 
@@ -73,9 +73,9 @@ animation-delay-600 {
   margin: 0 1rem 1rem;
   display: flex;
   flex-direction: column;
-}
+} */
 
-.p-4 {
+/* .p-4 {
   padding: 1rem;
 }
 .p-2 {
@@ -95,4 +95,4 @@ animation-delay-600 {
 }
 .mll {
   left: 25%;
-}
+} */
