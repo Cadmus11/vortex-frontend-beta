@@ -7,7 +7,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return null; // wait for auth state to resolve
 
   if (!user) {
     // user not logged in → redirect to login page

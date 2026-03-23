@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+
 import { ErrorMessage, Field, Form, Formik } from "formik";
 
 import { loginSchema } from "./validation";
@@ -102,8 +102,15 @@ export default function LoginForm() {
                   Login
                 </Button>
 
-                {/* Register Link */}
+                {/* Forgot Password */}
+                <p className="text-center text-xs text-zinc-400">
+                  Forgot password?
+                  <Link to="/forgot-password" className="text-green-500 ml-1 hover:underline">
+                    Reset
+                  </Link>
+                </p>
 
+                {/* Register Link */}
                 <p className="text-center text-xs text-zinc-400">
                   No Account?
                   <Link

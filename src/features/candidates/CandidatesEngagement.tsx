@@ -6,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Heart, MessageCircle } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Menu from "@/components/custom/Menu"
 
-interface Candidate {
+interface CandidateUI {
   id: string
   name: string
   position: string
@@ -19,30 +19,32 @@ interface Candidate {
   supportedByUser?: boolean
 }
 
-const mockCandidates: Candidate[] = [
-  {
-    id: "1",
-    name: "John Mwangi",
-    position: "President",
-    bio: "Focused on digital transformation and transparency.",
-    image: "/candidates/john.jpg",
-    supportCount: 320,
-    supportedByUser: false,
-  },
-  {
-    id: "2",
-    name: "Aisha Njeri",
-    position: "President",
-    bio: "Advocating student innovation and inclusivity.",
-    image: "/candidates/aisha.jpg",
-    supportCount: 280,
-    supportedByUser: false,
-  },
-]
-
 export default function CandidatesEngagementPage() {
-  const [candidates, setCandidates] = useState(mockCandidates)
+  const [candidates, setCandidates] = useState<CandidateUI[]>([])
   const [search, setSearch] = useState("")
+
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        const res = await fetch("/api/candidates")
+        const data = await res.json()
+        const mapped = data.map((c: any) => ({
+          id: String(c.id),
+          name: c.name,
+          position: c.position,
+          bio: c.manifesto ?? "",
+          image: c.imageUrl ?? "",
+          // default 0 since engagement metrics come from elsewhere
+          supportCount: 0,
+          supportedByUser: false
+        }))
+        setCandidates(mapped)
+      } catch {
+        setCandidates([])
+      }
+    }
+    fetchCandidates()
+  }, [])
 
   const totalSupport = candidates.reduce(
     (sum, c) => sum + c.supportCount,
@@ -87,15 +89,10 @@ export default function CandidatesEngagementPage() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((candidate) => {
           const supportPercentage =
-            totalSupport === 0
-              ? 0
-              : (candidate.supportCount / totalSupport) * 100
+            totalSupport === 0 ? 0 : (candidate.supportCount / totalSupport) * 100
 
           return (
-            <Card
-              key={candidate.id}
-              className="hover:shadow-lg transition"
-            >
+            <Card key={candidate.id} className="hover:shadow-lg transition">
               <CardHeader>
                 <img
                   src={candidate.image}
@@ -104,17 +101,12 @@ export default function CandidatesEngagementPage() {
                 />
                 <CardTitle className="flex justify-between items-center mt-3">
                   {candidate.name}
-                  <Badge variant="secondary">
-                    {candidate.position}
-                  </Badge>
+                  <Badge variant="secondary">{candidate.position}</Badge>
                 </CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {candidate.bio}
-                </p>
-
+                <p className="text-sm text-muted-foreground">{candidate.bio}</p>
                 <div>
                   <Progress value={supportPercentage} />
                   <p className="text-xs mt-1 text-muted-foreground">
@@ -124,20 +116,12 @@ export default function CandidatesEngagementPage() {
 
                 <div className="flex justify-between">
                   <Button
-                    variant={
-                      candidate.supportedByUser
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() =>
-                      handleSupportToggle(candidate.id)
-                    }
+                    variant={candidate.supportedByUser ? "default" : "outline"}
+                    onClick={() => handleSupportToggle(candidate.id)}
                     className="flex gap-2"
                   >
                     <Heart size={16} />
-                    {candidate.supportedByUser
-                      ? "Supported"
-                      : "Support"}
+                    {candidate.supportedByUser ? "Supported" : "Support"}
                   </Button>
 
                   <Button variant="ghost" size="icon">

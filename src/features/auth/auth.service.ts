@@ -4,7 +4,7 @@ export const API_URL = import.meta.env.VITE_API_URL;
 const API_BASE =
   typeof API_URL === "string" && API_URL
     ? API_URL
-    : "http://localhost:3000/api";
+    : "/api";
 
 export const loginWithEmail = async (data: {
   email: string;
@@ -12,6 +12,7 @@ export const loginWithEmail = async (data: {
 }) => {
   const res = await fetch(`${API_BASE}/auth/sign-in`, {
     method: "POST",
+    credentials: 'include',
 
     headers: {
       "Content-Type": "application/json",
@@ -34,6 +35,7 @@ export const registerUser = async (data: {
 }) => {
   const res = await fetch(`${API_BASE}/auth/sign-up`, {
     method: "POST",
+    credentials: 'include',
 
     headers: {
       "Content-Type": "application/json",
@@ -48,3 +50,4 @@ export const registerUser = async (data: {
 
   return res.json();
 };
+

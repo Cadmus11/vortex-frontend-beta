@@ -10,7 +10,7 @@
 }
 
 *::-webkit-scrollbar {
-  display: hidden;
+  display: none;
 }
 
 .index {
@@ -28,71 +28,9 @@
   }
 }
 
-animation-delay-300 {
+.animation-delay-300 {
   animation-delay: 300ms;
 }
-animation-delay-600 {
+.animation-delay-600 {
   animation-delay: 600ms;
 }
-
-/* .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-}
-
-.badge {
-  padding: 0 8px;
-}
-
-.card {
-  height: 6rem;
-  padding: 4px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-} */
-
-/* .separate {
-  margin: 1.25rem 1rem 1rem;
-}
-
-.realtime {
-  margin: 0 1rem 1rem;
-  padding: 1rem;
-}
-.candidate-status {
-  margin-bottom: 0.5rem;
-}
-
-.graph {
-  padding: 1rem;
-  text-align: center;
-  font-size: 15px;
-  margin: 0 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-} */
-
-/* .p-4 {
-  padding: 1rem;
-}
-.p-2 {
-  padding: 0.2rem;
-}
-.m-1 {
-  margin: 0 1rem 1rem;
-}
-.px {
-  padding: 0 1rem;
-}
-.mt {
-  margin: 1rem 0;
-}
-.ml {
-  left: 15%;
-}
-.mll {
-  left: 25%;
-} */

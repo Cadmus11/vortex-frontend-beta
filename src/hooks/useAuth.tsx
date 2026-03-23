@@ -1,13 +1,6 @@
 "use client";
-import { API_URL } from "@/features/auth/auth.service";
 
-import {
-  createContext,
-  // ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 type User = {
   id: string;
@@ -18,8 +11,9 @@ type User = {
 type AuthContextType = {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<unknown>;
+  login: (email: string, password: string) => Promise<any>;
   logout: () => void;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,31 +58,44 @@ function parseCookies(): { token: string | null; user: User | null } {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isHydrated, setIsHydrated] = useState(false);
-  const [{ token, user }, setAuth] = useState<{
-    token: string | null;
-    user: User | null;
-  }>(() => parseCookies());
+  const [auth, setAuth] = useState<{ token: string | null; user: User | null }>(() => parseCookies());
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // hydration flag
     setIsHydrated(true);
   }, []);
 
+  // Hydrate session from backend on load to validate token
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            setAuth({ token: auth.token, user: data.user });
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        setAuthReady(true);
+      }
+    })();
+  }, []);
+
   const login = async (email: string, password: string) => {
-    const res = await fetch(
-      `${API_URL ?? "http://localhost:3000/api"}/auth/sign-in`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      },
-    );
+    const res = await fetch('/api/auth/sign-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include',
+    });
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(data?.error ?? 'Login failed');
 
     setCookie("token", data.token, COOKIE_EXPIRY_DAYS);
     setCookie("user", JSON.stringify(data.user), COOKIE_EXPIRY_DAYS);
@@ -102,25 +109,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     deleteCookie("token");
     deleteCookie("user");
     localStorage.removeItem("token");
-
     setAuth({ token: null, user: null });
   };
 
   if (!isHydrated) return null;
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextType = {
+    user: auth.user,
+    token: auth.token,
+    login,
+    logout,
+    isLoading: !authReady,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-
   if (!context) {
     throw new Error("useAuth must be used within AuthProvider");
   }
-
   return context;
 };

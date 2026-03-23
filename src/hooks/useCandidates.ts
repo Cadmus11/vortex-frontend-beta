@@ -1,11 +1,14 @@
 import { useState } from "react"
+import { api } from "@/utils/api"
 
 export type Candidate = {
-  id: number
+  id: string
   name: string
   position: string
-  party: string
-  votes: number
+  manifesto?: string
+  imageUrl?: string
+  electionId?: string
+  createdAt?: string
 }
 
 export function useCandidates() {
@@ -14,24 +17,54 @@ export function useCandidates() {
 
   const fetchCandidates = async () => {
     setLoading(true)
-    // const res = await fetch("/api/candidates")
-    // const data = await res.json()
-    // setCandidates(data)
-    setLoading(false)
+    try {
+      const res = await api("/api/candidates", { method: "GET" })
+      if (res.ok) {
+        const data = await res.json()
+        const mapped = data.map((c: any) => ({
+          id: String(c.id),
+          name: c.name,
+          position: c.position,
+          manifesto: c.manifesto,
+          imageUrl: c.imageUrl,
+          electionId: c.electionId,
+          createdAt: c.createdAt
+        }))
+        setCandidates(mapped)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const addCandidate = (candidate: Candidate) => {
-    setCandidates(prev => [...prev, candidate])
+  const addCandidate = async (candidate: Candidate) => {
+    const res = await api("/api/candidates", {
+      method: "POST",
+      body: JSON.stringify(candidate)
+    })
+    if (res.ok) {
+      const newCand = await res.json()
+      setCandidates(prev => [...prev, newCand])
+    }
   }
 
-  const updateCandidate = (updated: Candidate) => {
-    setCandidates(prev =>
-      prev.map(c => (c.id === updated.id ? updated : c))
-    )
+  const updateCandidate = async (updated: Candidate) => {
+    const res = await api(`/api/candidates/${updated.id}`, {
+      method: "PUT",
+      body: JSON.stringify(updated)
+    })
+    if (res.ok) {
+      setCandidates(prev => prev.map(c => (c.id === updated.id ? updated : c)))
+    }
   }
 
-  const deleteCandidate = (id: number) => {
-    setCandidates(prev => prev.filter(c => c.id !== id))
+  const deleteCandidate = async (id: string) => {
+    const res = await api(`/api/candidates/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      setCandidates(prev => prev.filter(c => c.id !== id))
+    }
   }
 
   return {
