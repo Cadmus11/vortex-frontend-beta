@@ -1,33 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 export default function ResetPassword() {
-  const query = new URLSearchParams(window.location.search);
-  const tokenFromQuery = query.get('token') || '';
-
-  const [token, setToken] = useState<string>(tokenFromQuery);
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>('');
 
   const API_BASE = typeof (import.meta.env as any).VITE_API_URL === 'string' ? (import.meta.env as any).VITE_API_URL : '/api';
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      setMessage('Token is required');
+    setMessage('');
+
+    // Client-side validation
+    if (!email) {
+      setMessage('Email is required');
       return;
     }
+    if (!password || password.length < 8) {
+      setMessage('Password must be at least 8 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
-    setMessage('');
     try {
-      const res = await fetch(`${API_BASE}/auth/reset-password`, {
-        method: 'PATCH',
+      const res = await fetch(`${API_BASE}/auth/update-password`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ email, password, confirmPassword }),
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage(data?.message ?? 'Password updated');
+        setMessage(data?.message ?? 'Password updated. You can now log in with your new password.');
       } else {
         setMessage(data?.error ?? 'Failed to update password');
       }
@@ -41,13 +50,13 @@ export default function ResetPassword() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950">
       <div className="w-full max-w-md bg-zinc-900 border-zinc-800 p-6 rounded shadow-xl">
-        <h2 className="text-2xl text-center text-zinc-100 mb-4">Reset Password</h2>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <h2 className="text-2xl text-center text-zinc-100 mb-4">Update Password</h2>
+        <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <input
-            type="text"
-            placeholder="Token"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             className="w-full px-3 py-2 rounded bg-zinc-800 text-zinc-100 border border-zinc-700"
             required
           />
@@ -55,7 +64,15 @@ export default function ResetPassword() {
             type="password"
             placeholder="New password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
+            className="w-full px-3 py-2 rounded bg-zinc-800 text-zinc-100 border border-zinc-700"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
             className="w-full px-3 py-2 rounded bg-zinc-800 text-zinc-100 border border-zinc-700"
             required
           />

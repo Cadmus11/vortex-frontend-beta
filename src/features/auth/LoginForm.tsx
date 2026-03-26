@@ -1,20 +1,34 @@
-
 import { ErrorMessage, Field, Form, Formik } from "formik";
-
 import { loginSchema } from "./validation";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock, LogIn, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { useEffect } from "react";
+
+type LoginValues = {
+  email: string;
+  password: string;
+};
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      navigate("/admin/dashboard", { replace: true });
+    } else if (user?.role === "voter") {
+      navigate("/voter/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950">
@@ -26,19 +40,15 @@ export default function LoginForm() {
         </CardHeader>
 
         <CardContent>
-          <Formik
+          <Formik<LoginValues>
             initialValues={{ email: "", password: "" }}
             validationSchema={loginSchema}
             onSubmit={async (values, { setSubmitting }) => {
               try {
-                const data: any = await login(values.email, values.password);
-                if (data?.user?.role === "admin") {
-                  navigate("/admin/dashboard");
-                } else {
-                  navigate("/voter/dashboard");
-                }
-              } catch (error) {
-                console.error("Login error:", error);
+                setError(null);
+                await login(values.email, values.password);
+              } catch (err: any) {
+                setError(err.message);
               } finally {
                 setSubmitting(false);
               }
@@ -91,7 +101,11 @@ export default function LoginForm() {
                     className="text-red-500 text-sm mt-1"
                   />
                 </div>
-
+                {error && (
+  <div className="text-red-500 text-sm text-center">
+    {error}
+  </div>
+)}
                 {/* Login Button */}
                 <Button
                   type="submit"
@@ -105,7 +119,10 @@ export default function LoginForm() {
                 {/* Forgot Password */}
                 <p className="text-center text-xs text-zinc-400">
                   Forgot password?
-                  <Link to="/forgot-password" className="text-green-500 ml-1 hover:underline">
+                  <Link
+                    to="/reset-password"
+                    className="text-green-500 ml-1 hover:underline"
+                  >
                     Reset
                   </Link>
                 </p>

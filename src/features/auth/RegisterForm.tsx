@@ -1,17 +1,18 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
-import { registerUser } from "./auth.service";
 import { registerSchema } from "./validation";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
+import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const { signup } = useAuth();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950">
@@ -32,11 +33,13 @@ export default function RegisterForm() {
             validationSchema={registerSchema}
             onSubmit={async (values, { setSubmitting }) => {
               try {
-                await registerUser(values);
-                // user feedback hook could be added here
+                setError(null);
+                // Destructure values from Formik
+                const { email, admissionNumber, password } = values;
+                await signup(email, admissionNumber, password);
                 navigate("/login");
-              } catch (error) {
-                console.error("Register error:", error);
+              } catch (err: any) {
+                setError(err.message || "Something went wrong");
               } finally {
                 setSubmitting(false);
               }
@@ -87,6 +90,10 @@ export default function RegisterForm() {
                     className="text-red-500 text-sm"
                   />
                 </div>
+
+                {error && (
+                  <div className="text-red-500 text-sm text-center">{error}</div>
+                )}
 
                 <Button
                   type="submit"

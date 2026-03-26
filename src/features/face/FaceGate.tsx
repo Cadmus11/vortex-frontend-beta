@@ -143,6 +143,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       const payload = { image: dataURL };
       const res = await fetch("/api/face/embeddings", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });

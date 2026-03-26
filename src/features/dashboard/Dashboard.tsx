@@ -6,76 +6,94 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { ThemeToggle } from "@/context/ThemeToggler"
-import ReactECharts from "echarts-for-react"
 import {
   Activity,
+  Calendar,
   Clock,
-  GroupIcon,
-  PersonStandingIcon,
-  ScanFace,
   Shield,
-  Trophy,
   Users,
-  Vote,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-type Candidate = {
-  id: number
-  name: string
-  votes: number
-  trend: { time: string; votes: number }[]
+type Election = {
+  id: string
+  title: string
+  description: string
+  startTime: string
+  endTime: string
+  isActive: boolean
+  createdAt: string
 }
+
+type Stats = {
+  totalElections: number
+  activeElections: number
+  totalPositions: number
+  totalCandidates: number
+}
+
 export default function Dashboard() {
-  const [uptime] = useState(99.98)
-const date =new Date()
-const now = Date.now()
-const down = date.setDate(29)
-let downcount = down - now
-let days = downcount/1000/60/60/24
-let hours = downcount/1000/60 % 60
-let minutes = downcount/1000 % 60
-  const [candidates, setCandidates] = useState<Candidate[]>([
-    {
-      id: 1,
-      name: "Aether",
-      votes: 980,
-      trend: [],
-    },
-    {
-      id: 2,
-      name: "Nova",
-      votes: 765,
-      trend: [],
-    },
-    {
-      id: 3,
-      name: "Orion",
-      votes: 1890,
-      trend: [],
-    },
-  ])
+  const [elections, setElections] = useState<Election[]>([])
+  const [stats, setStats] = useState<Stats>({
+    totalElections: 0,
+    activeElections: 0,
+    totalPositions: 0,
+    totalCandidates: 0,
+  })
+  const [loading, setLoading] = useState(true)
 
-  const totalVoters = 15000
-  const votesCasted = candidates.reduce((acc, c) => acc + c.votes, 0)
-
-  // Live simulation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCandidates((prev) =>
-        prev.map((c) => ({
-          ...c,
-          votes: c.votes + Math.floor(Math.random() * 3),
-        }))
-      )
-    }, 4000)
+    const fetchData = async () => {
+      try {
+        const [electionsRes, positionsRes, candidatesRes] = await Promise.all([
+          fetch("/api/elections", { credentials: "include" }),
+          fetch("/api/positions", { credentials: "include" }),
+          fetch("/api/candidates", { credentials: "include" }),
+        ])
 
-    return () => clearInterval(interval)
+        const electionsData = electionsRes.ok ? await electionsRes.json() : []
+        const positionsData = positionsRes.ok ? await positionsRes.json() : []
+        const candidatesData = candidatesRes.ok ? await candidatesRes.json() : []
+
+        setElections(electionsData)
+        setStats({
+          totalElections: electionsData.length,
+          activeElections: electionsData.filter((e: Election) => e.isActive).length,
+          totalPositions: Array.isArray(positionsData) ? positionsData.length : 0,
+          totalCandidates: Array.isArray(candidatesData) ? candidatesData.length : 0,
+        })
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
 
-  const ranking = [...candidates].sort((a, b) => b.votes - a.votes)
+  const activeElection = elections.find((e) => e.isActive)
+  const nextElection = elections
+    .filter((e) => new Date(e.startTime) > new Date())
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
+
+  const getCountdown = () => {
+    if (!nextElection) return "—"
+    const diff = new Date(nextElection.startTime).getTime() - Date.now()
+    if (diff <= 0) return "Started"
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    return `${days}d ${hours}h`
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+  }
 
   return (
     <div className="space-y-6 p-2">
@@ -83,7 +101,6 @@ let minutes = downcount/1000 % 60
       <header className="flex justify-between items-center p-4">
         <h1 className="text-lg flex items-center gap-3">
           <Shield className="h-8 w-8 text-blue-600 " />
-          
           <span className="max-sm:hidden">Vortex Command Dashboard</span>
         </h1>
 
@@ -91,140 +108,88 @@ let minutes = downcount/1000 % 60
           <Badge className="bg-emerald-500 text-white">
             Live
           </Badge>
-         <span className="max-sm:hidden"> <ThemeToggle  /></span>
+          <span className="max-sm:hidden"> <ThemeToggle  /></span>
       <Menu/>
         </div>
       </header>
 
-      {/* Top Stats */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Voters"
-          value={totalVoters.toLocaleString()}
-          icon={<Users className="w-5 h-5" />}
-        />
-        <StatCard
-          title="Votes Casted"
-          value={votesCasted}
-          icon={<Vote className="w-5 h-5" />}
-        />
-     
-        <StatCard
-          title="Leading Candidate"
-          value={ranking[0]?.name ?? "—"}
-          icon={<Trophy className="w-5 h-5" />}
-        />
-        <StatCard title="Total Positions"
-        value={5}
-        icon={<PersonStandingIcon/>}
-        />
-         <StatCard title="Verified Voters"
-        value={8000}
-        icon={<ScanFace/>}
-        />
-         <StatCard title="All Candidates"
-        value={15}
-        icon={<GroupIcon/>}
-        />
-           <StatCard
-          title="Election Countdown"
-          value={`${days}D ${hours}H ${minutes}M`}
-          icon={<Clock/>}
-        />
-           <StatCard
-          title="System Uptime"
-          value={`${uptime}%`}
-          icon={<Activity className="w-5 h-5" />}
-        />
-      </div>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <p>Loading...</p>
+        </div>
+      ) : (
+        <>
+          {/* Top Stats */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="Total Elections"
+              value={stats.totalElections}
+              icon={<Calendar className="w-5 h-5" />}
+            />
+            <StatCard
+              title="Active Elections"
+              value={stats.activeElections}
+              icon={<Activity className="w-5 h-5" />}
+            />
+            <StatCard
+              title="Total Positions"
+              value={stats.totalPositions}
+              icon={<Users className="w-5 h-5" />}
+            />
+            <StatCard
+              title="Total Candidates"
+              value={stats.totalCandidates}
+              icon={<Shield className="w-5 h-5" />}
+            />
+          </div>
 
-      {/* Ranking */}
-      <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            Real-Time Candidate Ranking
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {ranking.map((candidate, index) => {
-            const percentage =
-              votesCasted > 0
-                ? (candidate.votes / votesCasted) * 100
-                : 0
-
-            return (
-              <div key={candidate.id} className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="font-medium">
-                    {index + 1}. {candidate.name}
-                  </span>
-                  <span className="text-sm text-zinc-500">
-                    {candidate.votes} votes
-                  </span>
+          {/* Election List */}
+          <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+            <CardHeader>
+              <CardTitle className="text-xl">Elections</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {elections.length === 0 ? (
+                <p className="text-zinc-500 text-center py-4">No elections found</p>
+              ) : (
+                <div className="space-y-3">
+                  {elections.map((election) => (
+                    <div
+                      key={election.id}
+                      className="flex justify-between items-center p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800"
+                    >
+                      <div>
+                        <p className="font-medium">{election.title}</p>
+                        <p className="text-sm text-zinc-500">
+                          {formatDate(election.startTime)} - {formatDate(election.endTime)}
+                        </p>
+                      </div>
+                      <Badge variant={election.isActive ? "default" : "secondary"}>
+                        {election.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-                <Progress value={percentage} />
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Doughnut Charts */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {candidates.map((candidate) => {
-          const percentage =
-            votesCasted > 0
-              ? ((candidate.votes / votesCasted) * 100).toFixed(1)
-              : "0"
-
-          const option = {
-            tooltip: { trigger: "item" },
-            series: [
-              {
-                type: "pie",
-                radius: ["60%", "80%"],
-                label: {
-                  show: true,
-                  position: "center",
-                  formatter: `${percentage}%`,
-                  fontSize: 20,
-                  fontWeight: "bold",
-                },
-                labelLine: { show: false },
-                data: [
-                  {
-                    value: candidate.votes,
-                    name: candidate.name,
-                  },
-                  {
-                    value: votesCasted - candidate.votes,
-                    name: "Other",
-                  },
-                ],
-              },
-            ],
-          }
-
-          return (
-            <Card
-              key={candidate.id}
-              className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
-            >
-              <CardHeader>
-                <CardTitle>
-                  {candidate.name} Vote Share
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-64">
-                <ReactECharts
-                  option={option}
-                  style={{ height: "100%", width: "100%" }}
-                />
+          {/* Next Election Countdown */}
+          {nextElection && (
+            <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+              <CardContent className="flex justify-between items-center py-4">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  <span>Next Election: <strong>{nextElection.title}</strong></span>
+                </div>
+                <div className="text-lg font-bold text-blue-600">
+                  {getCountdown()}
+                </div>
               </CardContent>
             </Card>
-          )
-        })}
-      </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -235,7 +200,7 @@ function StatCard({
   icon,
 }: {
   title: string
-  value: string | number
+  value: number | string
   icon: React.ReactNode
 }) {
   return (
@@ -245,7 +210,7 @@ function StatCard({
           <p className="text-sm text-zinc-500">{title}</p>
           <p className="text-2xl font-extrabold">{value}</p>
         </div>
-        <div className="p-3 bg-emerald-500/20 rounded-md  dark:bg-zinc-800">
+        <div className="p-3 bg-emerald-500/20 rounded-md dark:bg-zinc-800">
           {icon}
         </div>
       </CardContent>

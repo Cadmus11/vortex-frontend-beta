@@ -54,7 +54,7 @@ export default function CandidatesManagement() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("/api/candidates")
+        const res = await fetch("/api/candidates", { credentials: "include" })
         if (res.ok) {
           const data = await res.json()
           const mapped = data.map((c: any) => ({
@@ -74,7 +74,7 @@ export default function CandidatesManagement() {
   }, [])
 
   const deleteCandidate = async (id: string | number) => {
-    await fetch(`/api/candidates/${id}`, { method: "DELETE" })
+    await fetch(`/api/candidates/${id}`, { method: "DELETE", credentials: "include" })
     setCandidates(prev => prev.filter(c => c.id !== id))
   }
 
@@ -114,6 +114,7 @@ export default function CandidatesManagement() {
 
     const res = await fetch(`/api/candidates/${editing.id}`, {
       method: "PUT",
+      credentials: "include",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
@@ -166,6 +167,7 @@ export default function CandidatesManagement() {
 
     const res = await fetch("/api/candidates", {
       method: "POST",
+      credentials: "include",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })

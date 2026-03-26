@@ -26,7 +26,7 @@ export default function CandidatesEngagementPage() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("/api/candidates")
+        const res = await fetch("/api/candidates", { credentials: "include" })
         const data = await res.json()
         const mapped = data.map((c: any) => ({
           id: String(c.id),

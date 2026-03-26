@@ -36,13 +36,13 @@ const VotingPanel = () => {
     let mounted = true;
     (async () => {
       try {
-        const resPos = await fetch('/api/positions');
+        const resPos = await fetch('/api/positions', { credentials: 'include' });
         if (resPos.ok) {
           const pos = await resPos.json();
           if (!mounted) return;
           const positionsList: Position[] = pos.map((p: any) => ({ id: p.id ?? p.positionId ?? p.name ?? '', name: p.name ?? p.positionName ?? '' }));
           setPositions(positionsList);
-          const fetches = positionsList.map(p => fetch(`/api/candidates/${p.id}`).then(r => r.ok ? r.json() : []));
+          const fetches = positionsList.map(p => fetch(`/api/candidates/${p.id}`, { credentials: 'include' }).then(r => r.ok ? r.json() : []));
           const results = await Promise.all(fetches);
           const m: Record<string, Candidate[]> = {};
           positionsList.forEach((p, idx) => {
@@ -71,6 +71,7 @@ const VotingPanel = () => {
     try {
       const res = await fetch('/api/votes', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

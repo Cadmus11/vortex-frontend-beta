@@ -1,8 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 
-const  NotFound = () => {
+const NotFound = () => {
+  const navigate = useNavigate();
+  
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="h-dvh w-dvw gap-4 p-8 bg-zinc-50 dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 flex justify-center items-center">
       <div className="flex flex-col gap-4 justify-center items-center">
@@ -19,10 +29,10 @@ const  NotFound = () => {
 
         <div className="flex flex-col sm:flex-row gap-4 text-zinc-50 justify-center pt-4 w-full">
           <Button asChild size="lg" className="" >
-            <Link to="/" > Return Home</Link>
+            <Link to="/login">Go to Login</Link>
           </Button>
-          <Button  size="lg" asChild>
-            <Link to="/">Go Back</Link>
+          <Button size="lg" onClick={handleGoBack}>
+            Go Back
           </Button>
         </div>
       </div>

@@ -23,6 +23,7 @@ const Menu = () => {
   const isAdmin = roleRaw.toLowerCase() === 'admin';
   const username = user?.email?.split('@')[0]?.slice(0, 8) ?? '';
   const userRole = isAdmin ? 'admin' : 'voter';
+  
 
   return (
     <>
@@ -46,8 +47,8 @@ const Menu = () => {
             </span>
             <span className="flex items-center gap-4">
               <Shield />
-              <VerifiedIcon className="text-green-500" />
-              <img src={water} alt="" className="h-8 w-8 rounded-md" />
+              <VerifiedIcon className={user?.isVerified ? "text-green-500" : "text-red-500"} />
+              <img src={userRole.toLowerCase() === 'voter'? water : fire} alt="" className="h-8 w-8 rounded-md" />
               <ThemeToggle />
               <XCircle onClick={() => setMenu(false)} className="cursor-pointer p-2 rounded-full flex justify-center items-center h-8 w-8" />
             </span>

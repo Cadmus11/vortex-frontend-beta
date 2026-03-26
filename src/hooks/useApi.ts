@@ -1,3 +1,5 @@
+import { useAuth } from "./useAuth"
+
 export function useApi() {
     const { user } = useAuth()
   

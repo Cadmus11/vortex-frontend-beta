@@ -33,7 +33,7 @@ export default function AddCandidate() {
 
   // fetch elections for dropdown
   useEffect(() => {
-    fetch('/api/elections')
+    fetch('/api/elections', { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -45,7 +45,7 @@ export default function AddCandidate() {
 
   // fetch positions for dropdown (global positions)
   useEffect(() => {
-    fetch('/api/positions')
+    fetch('/api/positions', { credentials: "include" })
       .then((r) => r.json())
       .then((data: any[]) => {
         if (Array.isArray(data)) {
@@ -62,12 +62,36 @@ export default function AddCandidate() {
     });
 
   const onSubmit = async (data: CandidateFormValues) => {
+    let finalImageUrl = imagePreview;
+
+    if (selectedImageFile) {
+      const formData = new FormData();
+      formData.append('file', selectedImageFile);
+      formData.append('upload_preset', 'vortex_candidates');
+
+      try {
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+        const cloudData = await cloudRes.json();
+        if (cloudData.secure_url) {
+          finalImageUrl = cloudData.secure_url;
+        }
+      } catch (err) {
+        console.error('Image upload failed:', err);
+      }
+    }
+
     const payload = {
       name: data.name,
       position: data.position,
       manifesto: data.manifesto,
       electionId: data.electionId,
-      imageUrl: imagePreview ?? null,
+      imageUrl: finalImageUrl ?? null,
     };
 
     const res = await fetch('/api/candidates', {
@@ -89,9 +113,12 @@ export default function AddCandidate() {
     alert('Candidate Added Successfully');
   };
 
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
