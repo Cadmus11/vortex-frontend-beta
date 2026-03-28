@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useContext, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -111,6 +111,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+
+
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }
 
 export { AuthProvider };
