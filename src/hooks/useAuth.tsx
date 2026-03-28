@@ -7,6 +7,7 @@ export type User = {
   email: string;
   role: "admin" | "voter";
   isVerified?: boolean;
+  token: string
 };
 
 export type AuthContextType = {
@@ -59,7 +60,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const data = await res.json() as { user?: User; error?: string };
-
+  //  export const token = data.user?.token
     if (!res.ok) {
       throw new Error(data?.error || "Login failed");
     }
