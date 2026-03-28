@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: vortex-frontend-beta
+        working-directory: vortex-frontend-beta/
     steps:
       - uses: actions/checkout@v4
 
