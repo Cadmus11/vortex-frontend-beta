@@ -38,8 +38,9 @@ export default function RegisterForm() {
                 const { email, admissionNumber, password } = values;
                 await signup(email, admissionNumber, password);
                 navigate("/login");
-              } catch (err: any) {
-                setError(err.message || "Something went wrong");
+              } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Something went wrong";
+                setError(message);
               } finally {
                 setSubmitting(false);
               }

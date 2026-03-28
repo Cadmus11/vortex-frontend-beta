@@ -1,5 +1,3 @@
-"use client"
-
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +6,14 @@ import { Progress } from "@/components/ui/progress"
 import { Heart, MessageCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 import Menu from "@/components/custom/Menu"
+
+interface CandidateAPI {
+  id: number | string;
+  name: string;
+  position: string;
+  manifesto?: string;
+  imageUrl?: string;
+}
 
 interface CandidateUI {
   id: string
@@ -27,14 +33,13 @@ export default function CandidatesEngagementPage() {
     const fetchCandidates = async () => {
       try {
         const res = await fetch("/api/candidates", { credentials: "include" })
-        const data = await res.json()
-        const mapped = data.map((c: any) => ({
+        const data = await res.json() as CandidateAPI[]
+        const mapped: CandidateUI[] = data.map((c) => ({
           id: String(c.id),
           name: c.name,
           position: c.position,
           bio: c.manifesto ?? "",
           image: c.imageUrl ?? "",
-          // default 0 since engagement metrics come from elsewhere
           supportCount: 0,
           supportedByUser: false
         }))
@@ -75,8 +80,8 @@ export default function CandidatesEngagementPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center max-sm:flex-col max-sm:gap-4">
         <div className="flex items-center gap-2 max-sm:flex-row-reverse max-sm:justify-between max-sm:w-full">
-        <Menu/>
-        <h1 className="text-2xl font-bold">Campaigns</h1>
+          <Menu />
+          <h1 className="text-2xl font-bold">Campaigns</h1>
         </div>
         <Input
           placeholder="Search candidate..."

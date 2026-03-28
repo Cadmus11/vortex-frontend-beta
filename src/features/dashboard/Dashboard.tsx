@@ -1,32 +1,21 @@
 import Menu from "@/components/custom/Menu"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ThemeToggle } from "@/context/ThemeToggler"
-import {
-  Activity,
-  Calendar,
-  Clock,
-  Shield,
-  Users,
-} from "lucide-react"
+import { Activity, Calendar, Clock, Shield, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 
-type Election = {
+interface Election {
   id: string
   title: string
-  description: string
+  description?: string
   startTime: string
   endTime: string
   isActive: boolean
-  createdAt: string
+  createdAt?: string
 }
 
-type Stats = {
+interface Stats {
   totalElections: number
   activeElections: number
   totalPositions: number
@@ -52,14 +41,14 @@ export default function Dashboard() {
           fetch("/api/candidates", { credentials: "include" }),
         ])
 
-        const electionsData = electionsRes.ok ? await electionsRes.json() : []
+        const electionsData: Election[] = electionsRes.ok ? await electionsRes.json() : []
         const positionsData = positionsRes.ok ? await positionsRes.json() : []
         const candidatesData = candidatesRes.ok ? await candidatesRes.json() : []
 
         setElections(electionsData)
         setStats({
           totalElections: electionsData.length,
-          activeElections: electionsData.filter((e: Election) => e.isActive).length,
+          activeElections: electionsData.filter((e) => e.isActive).length,
           totalPositions: Array.isArray(positionsData) ? positionsData.length : 0,
           totalCandidates: Array.isArray(candidatesData) ? candidatesData.length : 0,
         })
@@ -73,7 +62,6 @@ export default function Dashboard() {
     fetchData()
   }, [])
 
-  const activeElection = elections.find((e) => e.isActive)
   const nextElection = elections
     .filter((e) => new Date(e.startTime) > new Date())
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
@@ -97,7 +85,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 p-2">
-      {/* Header */}
       <header className="flex justify-between items-center p-4">
         <h1 className="text-lg flex items-center gap-3">
           <Shield className="h-8 w-8 text-blue-600 " />
@@ -108,8 +95,8 @@ export default function Dashboard() {
           <Badge className="bg-emerald-500 text-white">
             Live
           </Badge>
-          <span className="max-sm:hidden"> <ThemeToggle  /></span>
-      <Menu/>
+          <span className="max-sm:hidden"> <ThemeToggle /></span>
+          <Menu />
         </div>
       </header>
 
@@ -119,7 +106,6 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          {/* Top Stats */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               title="Total Elections"
@@ -143,7 +129,6 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Election List */}
           <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
             <CardHeader>
               <CardTitle className="text-xl">Elections</CardTitle>
@@ -174,7 +159,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Next Election Countdown */}
           {nextElection && (
             <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
               <CardContent className="flex justify-between items-center py-4">

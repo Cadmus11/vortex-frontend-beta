@@ -1,25 +1,37 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/context/ThemeToggler";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/context/ThemeToggler";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
-type ProfileData = {
+interface ProfileData {
   displayName?: string;
   email?: string;
   location?: string;
   bio?: string;
   avatarColor?: string;
-};
+}
 
-const Avatar = ({
+function getStoredProfile(): ProfileData {
+  try {
+    const raw = localStorage.getItem("userProfile");
+    if (raw) {
+      return JSON.parse(raw) as ProfileData;
+    }
+  } catch {
+    // ignore
+  }
+  return { displayName: "User", email: "" };
+}
+
+function Avatar({
   name = "U",
   color = "#374151",
 }: {
   name?: string;
   color?: string;
-}) => {
+}) {
   const initials =
     name
       ?.trim()
@@ -45,33 +57,18 @@ const Avatar = ({
       {initials}
     </div>
   );
-};
+}
 
-const Profile = () => {
-  const [profile, setProfile] = useState<ProfileData>({
-    displayName: "User",
-    email: "",
-  });
+function Profile() {
+  const [profile, setProfile] = useState<ProfileData>(getStoredProfile);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("userProfile");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setProfile((p) => ({ ...p, ...parsed }));
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const saveProfile = () => {
+  const saveProfile = useCallback(() => {
     localStorage.setItem("userProfile", JSON.stringify(profile));
     setSaved("Profile updated");
     setTimeout(() => setSaved(null), 1500);
-  };
+  }, [profile]);
 
   return (
     <Card className="bg-zinc-100 dark:bg-zinc-900 w-full max-w-2xl mx-auto border-zinc-200 dark:border-zinc-800 backdrop-blur">
@@ -152,6 +149,6 @@ const Profile = () => {
       </CardContent>
     </Card>
   );
-};
+}
 
 export default Profile;

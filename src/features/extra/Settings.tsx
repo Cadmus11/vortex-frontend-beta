@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,49 +6,48 @@ import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/context/ThemeToggler";
 import { cn } from "@/lib/utils";
 
-type ProfileData = {
+interface ProfileData {
   displayName: string;
   email?: string;
   location?: string;
   bio?: string;
   avatarColor?: string;
-};
+}
 
-const Settings = () => {
-  const [profile, setProfile] = useState<ProfileData>({
+function getStoredProfile(): ProfileData {
+  try {
+    const raw = localStorage.getItem("userProfile");
+    if (raw) {
+      return JSON.parse(raw) as ProfileData;
+    }
+  } catch {
+    // ignore
+  }
+  return {
     displayName: "User",
     email: "",
     location: "",
     bio: "",
     avatarColor: "#374151",
-  });
+  };
+}
+
+function Settings() {
+  const [profile, setProfile] = useState<ProfileData>(getStoredProfile);
   const [saved, setSaved] = useState<string | null>(null);
 
-  // Load any saved profile from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("userProfile");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setProfile((p) => ({ ...p, ...parsed }));
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }, []);
-
-  const saveProfile = () => {
+  const saveProfile = useCallback(() => {
     localStorage.setItem("userProfile", JSON.stringify(profile));
     setSaved("Profile saved");
     setTimeout(() => setSaved(null), 1500);
-  };
+  }, [profile]);
 
-  const clearData = () => {
+  const clearData = useCallback(() => {
     localStorage.removeItem("userProfile");
     setProfile((p) => ({ ...p, location: "", bio: "" }));
     setSaved("Data cleared");
     setTimeout(() => setSaved(null), 1500);
-  };
+  }, []);
 
   return (
     <Card className="bg-zinc-100 dark:bg-zinc-900 w-full max-w-2xl mx-auto border-zinc-200 dark:border-zinc-800 backdrop-blur">
@@ -57,7 +56,6 @@ const Settings = () => {
         <ThemeToggle />
       </CardHeader>
       <CardContent className="space-y-6 px-4 pb-6">
-        {/* Personal Info */}
         <section>
           <h4 className="text-sm font-semibold text-zinc-600 mb-2">
             Personal Information
@@ -117,7 +115,6 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Actions */}
         <section className="pt-2 border-t border-t-zinc-200 dark:border-t-zinc-700">
           <div className="flex gap-4 flex-wrap items-center justify-between">
             <div className="text-sm text-zinc-600">
@@ -143,6 +140,6 @@ const Settings = () => {
       </CardContent>
     </Card>
   );
-};
+}
 
 export default Settings;

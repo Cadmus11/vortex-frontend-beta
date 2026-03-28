@@ -1,5 +1,4 @@
-// src/app/ThemeProvider.tsx
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState, useSyncExternalStore } from "react"
 
 export type Theme = "light" | "dark" 
 
@@ -11,23 +10,42 @@ interface ThemeContextProps {
 
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined)
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>("light")
+const themeStorage = {
+  get: (): Theme => {
+    if (typeof window === "undefined") return "light"
+    return (localStorage.getItem("theme") as Theme) || "light"
+  },
+  set: (theme: Theme) => {
+    localStorage.setItem("theme", theme)
+    document.documentElement.setAttribute("data-theme", theme)
+  },
+  subscribe: (_onStoreChange: () => void) => {
+    return () => {}
+  },
+  getSnapshot: () => "light",
+}
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as Theme
-    if (savedTheme) {
-      setThemeState(savedTheme)
-      document.documentElement.setAttribute("data-theme", savedTheme)
-    } else {
-      document.documentElement.setAttribute("data-theme", theme)
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme") as Theme
+      if (saved) {
+        document.documentElement.setAttribute("data-theme", saved)
+        return saved
+      }
     }
-  }, [])
+    return "light"
+  })
+
+  useSyncExternalStore(
+    themeStorage.subscribe,
+    themeStorage.getSnapshot,
+    themeStorage.getSnapshot
+  )
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme)
-    document.documentElement.setAttribute("data-theme", newTheme)
-    localStorage.setItem("theme", newTheme)
+    themeStorage.set(newTheme)
   }
 
   const toggleTheme = () => {
@@ -40,10 +58,4 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </ThemeContext.Provider>
   )
-}
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext)
-  if (!context) throw new Error("useTheme must be used within ThemeProvider")
-  return context
 }

@@ -1,24 +1,12 @@
-"use client"
-import Menu from "@/components/custom/Menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/context/ThemeToggler"
 import { useEffect, useState } from "react"
 
-type Candidate = {
+interface Candidate {
   id: number
   name: string
   position: string
@@ -26,7 +14,7 @@ type Candidate = {
   votes: number
 }
 
-type NewCandidate = {
+interface NewCandidate {
   name: string
   position: string
   manifesto?: string
@@ -37,8 +25,6 @@ type NewCandidate = {
 export default function CandidatesManagement() {
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [editing, setEditing] = useState<Candidate | null>(null)
-
-  // Create form state
   const [newCand, setNewCand] = useState<NewCandidate>({
     name: "",
     position: "",
@@ -46,8 +32,6 @@ export default function CandidatesManagement() {
     imageFile: undefined,
     imagePreview: "",
   })
-
-  // Edit image state for replacement
   const [editImageFile, setEditImageFile] = useState<File | null>(null)
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
 
@@ -56,8 +40,8 @@ export default function CandidatesManagement() {
       try {
         const res = await fetch("/api/candidates", { credentials: "include" })
         if (res.ok) {
-          const data = await res.json()
-          const mapped = data.map((c: any) => ({
+          const data = await res.json() as Array<{ id: number; name: string; position: string; manifesto?: string }>
+          const mapped: Candidate[] = data.map((c) => ({
             id: c.id,
             name: c.name,
             position: c.position,
@@ -73,14 +57,14 @@ export default function CandidatesManagement() {
     fetchCandidates()
   }, [])
 
-  const deleteCandidate = async (id: string | number) => {
+  const deleteCandidate = async (id: number) => {
     await fetch(`/api/candidates/${id}`, { method: "DELETE", credentials: "include" })
     setCandidates(prev => prev.filter(c => c.id !== id))
   }
 
   const uploadToCloudinary = async (file: File): Promise<string> => {
-    const CLOUD_NAME = (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME || ""
-    const UPLOAD_PRESET = (import.meta as any).env?.VITE_CLOUDINARY_UPLOAD_PRESET || ""
+    const CLOUD_NAME = (import.meta as { env?: Record<string, string> }).env?.VITE_CLOUDINARY_CLOUD_NAME || ""
+    const UPLOAD_PRESET = (import.meta as { env?: Record<string, string> }).env?.VITE_CLOUDINARY_UPLOAD_PRESET || ""
     if (!CLOUD_NAME || !UPLOAD_PRESET) {
       throw new Error("Cloudinary config not set in frontend env")
     }
@@ -92,7 +76,7 @@ export default function CandidatesManagement() {
       method: "POST",
       body: form,
     })
-    const data = await res.json()
+    const data = await res.json() as { secure_url?: string }
     if (res.ok && data.secure_url) {
       return data.secure_url
     }
@@ -101,8 +85,7 @@ export default function CandidatesManagement() {
 
   const saveEditWithServer = async () => {
     if (!editing) return
-    // Build payload for update; include imageUrl if a new image was chosen
-    const payload: any = {
+    const payload: Record<string, string> = {
       name: editing.name,
       position: editing.position,
       manifesto: editing.party
@@ -119,7 +102,6 @@ export default function CandidatesManagement() {
       body: JSON.stringify(payload)
     })
     if (res.ok) {
-      // Update local display values
       setCandidates(prev => prev.map(c => (
         c.id === editing.id ? { ...c, name: editing.name, position: editing.position, party: editing.party } : c
       )))
@@ -129,8 +111,7 @@ export default function CandidatesManagement() {
     }
   }
 
-  // Helpers for file input (create and edit)
-  const onNewFileChange = (e: any) => {
+  const onNewFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setNewCand(prev => ({ ...prev, imageFile: file }))
@@ -142,7 +123,7 @@ export default function CandidatesManagement() {
     reader.readAsDataURL(file)
   }
 
-  const onEditFileChange = (e: any) => {
+  const onEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setEditImageFile(file)
@@ -155,10 +136,10 @@ export default function CandidatesManagement() {
   }
 
   const createCandidate = async () => {
-    const payload: any = {
+    const payload: Record<string, string> = {
       name: newCand.name,
       position: newCand.position,
-      manifesto: newCand.manifesto,
+      manifesto: newCand.manifesto ?? "",
     }
     if (newCand.imageFile) {
       const url = await uploadToCloudinary(newCand.imageFile)
@@ -172,19 +153,18 @@ export default function CandidatesManagement() {
       body: JSON.stringify(payload)
     })
     if (res.ok) {
-      const created = await res.json()
-      const c = created?.length ? created[0] : created
-      if (c) {
+      const created = await res.json() as { id?: number; name?: string; position?: string; manifesto?: string } | Array<{ id: number; name: string; position: string; manifesto?: string }>
+      const c = Array.isArray(created) ? created[0] : created
+      if (c && c.id) {
         setCandidates(prev => [
           ...prev,
-          { id: c.id, name: c.name, position: c.position, party: c.manifesto ?? "", votes: 0 }
+          { id: c.id as number, name: c.name ?? "", position: c.position ?? "", party: c.manifesto ?? "", votes: 0 }
         ])
       }
       setNewCand({ name: "", position: "", manifesto: "", imageFile: undefined, imagePreview: "" })
     }
   }
 
-  // Open edit modal with prefilled values
   const editCandidate = (cand: Candidate) => {
     setEditing({ ...cand })
     setEditImageFile(null)
@@ -193,7 +173,6 @@ export default function CandidatesManagement() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Create form */}
       <div className="border rounded-md p-4 bg-zinc-50 dark:bg-zinc-900">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold">Create Candidate</h2>
@@ -217,7 +196,6 @@ export default function CandidatesManagement() {
         </div>
       </div>
 
-      {/* Admin list */}
       <div className="grid md:grid-cols-2 gap-6">
         {candidates.map(candidate => (
           <Card key={candidate.id} className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
@@ -236,7 +214,6 @@ export default function CandidatesManagement() {
         ))}
       </div>
 
-      {/* Edit Modal */}
       <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
         <DialogContent>
           <DialogHeader>

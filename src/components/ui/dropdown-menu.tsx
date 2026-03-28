@@ -11,10 +11,8 @@ DropdownMenu.displayName = "DropdownMenu"
 
 const DropdownMenuTrigger = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    asChild?: boolean
-  }
->(({ className, asChild, ...props }, ref) => (
+  React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ className, ...props }, ref) => (
   <button
     ref={ref}
     className={cn(

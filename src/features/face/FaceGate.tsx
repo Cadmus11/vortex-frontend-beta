@@ -1,5 +1,3 @@
-"use client";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +6,29 @@ import { cn } from "@/lib/utils";
 import { Camera, ScanLine } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type FaceGateProps = {
+interface FaceGateProps {
   onVerified?: () => void;
-};
+}
 
-// Lightweight browser-based face gate with on-device detection
+interface FaceDetectorAPI {
+  detect: (source: HTMLVideoElement) => Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
+}
+
+declare global {
+  interface Window {
+    FaceDetector: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorAPI;
+  }
+}
+
+interface EmbeddingResponse {
+  id?: string;
+  embeddingId?: string;
+}
+
 export default function FaceGate({ onVerified }: FaceGateProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
-  const detectorRef = useRef<any>(null);
+  const detectorRef = useRef<FaceDetectorAPI | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -26,14 +38,28 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     ok?: boolean;
   } | null>(null);
 
-  // Initialize camera + face detector when available
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setStreaming(true);
+    } catch {
+      console.error("Camera access denied");
+    }
+  };
+
+  const stopCamera = () => {
+    const stream = videoRef.current?.srcObject as MediaStream;
+    stream?.getTracks().forEach((track) => track.stop());
+  };
+
   useEffect(() => {
     startCamera();
-    // Init FaceDetector if available
-    if (typeof window !== "undefined" && (window as any).FaceDetector) {
+    if (typeof window !== "undefined" && window.FaceDetector) {
       try {
-        // @ts-ignore
-        detectorRef.current = new (window as any).FaceDetector({
+        detectorRef.current = new window.FaceDetector({
           fastMode: true,
           maxDetectedFaces: 1,
         });
@@ -44,36 +70,16 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     return () => stopCamera();
   }, []);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setStreaming(true);
-    } catch (error) {
-      console.error("Camera access denied");
-    }
-  };
-
-  const stopCamera = () => {
-    const stream = videoRef.current?.srcObject as MediaStream;
-    stream?.getTracks().forEach((track) => track.stop());
-  };
-
-  // Detect if a face is visible in the current frame using FaceDetector when available
   const detectFaceInFrame = async (): Promise<boolean> => {
     try {
       if (!videoRef.current || !detectorRef.current) return false;
-      // The detector can take the video element directly
-      const faces = await detectorRef.current.detect(videoRef.current as any);
+      const faces = await detectorRef.current.detect(videoRef.current);
       return !!faces && faces.length > 0;
     } catch {
       return false;
     }
   };
 
-  // Capture a frame into a canvas and compute simple brightness metric
   const captureFrame = (): {
     dataURL: string;
     brightness: number;
@@ -99,7 +105,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     const imageData = ctx.getImageData(0, 0, w, h).data;
     let sum = 0;
     for (let i = 0; i < imageData.length; i += 4) {
-      // perceived brightness
       const r = imageData[i];
       const g = imageData[i + 1];
       const b = imageData[i + 2];
@@ -117,7 +122,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     setEmbeddingInfo(null);
     setScanning(true);
 
-    // Step 1: detect face in frame
     const hasFace = await detectFaceInFrame();
     if (!hasFace) {
       setLightingHint(
@@ -127,18 +131,15 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       return;
     }
 
-    // Step 2: capture frame & check lighting
     const { dataURL, brightness } = captureFrame();
     if (brightness > 0 && brightness < 60) {
       setLightingHint(
         "Lighting is a bit dim. Please improve lighting for better scanning.",
       );
-      // Do not fail the scan; allow user to recenter and rescan
       setScanning(false);
       return;
     }
 
-    // Step 3: send embeddings to server for storage
     try {
       const payload = { image: dataURL };
       const res = await fetch("/api/face/embeddings", {
@@ -148,7 +149,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        const json = await res.json();
+        const json = await res.json() as EmbeddingResponse;
         setEmbeddingInfo({
           id: json.id ?? json.embeddingId ?? undefined,
           ok: true,
@@ -156,11 +157,10 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
         setVerified(true);
         onVerified?.();
       } else {
-        // server rejected/syntax error
         const text = await res.text();
         setLightingHint("Failed to save embeddings: " + text);
       }
-    } catch (err) {
+    } catch {
       setLightingHint("Network error saving embeddings. Please try again.");
     } finally {
       setScanning(false);
@@ -169,7 +169,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
 
   const embeddingId = embeddingInfo?.id;
 
-  // Derived UI hints
   const lightingStatus = useMemo(() => {
     if (lightingHint) return lightingHint;
     return verified
@@ -194,7 +193,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       </CardHeader>
 
       <CardContent className="space-y-6 px-4 pb-6">
-        {/* Camera Feed with responsive container */}
         <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-zinc-300 dark:border-zinc-700">
           <video
             ref={videoRef}
@@ -210,7 +208,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
           )}
         </div>
 
-        {/* Status & guidance */}
         <div className="text-center space-y-2">
           {lightingHint && (
             <div className="text-sm text-yellow-700 dark:text-yellow-300">
@@ -222,7 +219,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
           )}
         </div>
 
-        {/* Action Button */}
         {!verified && (
           <div className="flex justify-center">
             <Button

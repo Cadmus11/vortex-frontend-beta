@@ -6,27 +6,36 @@ import { ThemeToggle } from "@/context/ThemeToggler";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import Toast from "@/components/ui/toast";
 
-type Candidate = {
+interface Candidate {
   id: string;
   name: string;
   party: string;
-  slogan: string;
-  color: string;
-};
+  slogan?: string;
+  color?: string;
+}
 
-type Position = {
+interface Position {
   id: string;
   name: string;
-};
+}
 
-const VotingPanel = () => {
-  const navigate = useNavigate();
+interface PositionResponse {
+  id?: string;
+  positionId?: string;
+  name?: string;
+  positionName?: string;
+}
+
+interface VotePayload {
+  userId?: string;
+  candidates: Array<{ id: string }>;
+}
+
+function VotingPanel() {
   const { user } = useAuth();
-
   const [positions, setPositions] = useState<Position[]>([]);
   const [candsByPos, setCandsByPos] = useState<Record<string, Candidate[]>>({});
   const [selected, setSelected] = useState<Record<string, string | null>>({});
@@ -38,15 +47,18 @@ const VotingPanel = () => {
       try {
         const resPos = await fetch('/api/positions', { credentials: 'include' });
         if (resPos.ok) {
-          const pos = await resPos.json();
+          const pos = await resPos.json() as PositionResponse[];
           if (!mounted) return;
-          const positionsList: Position[] = pos.map((p: any) => ({ id: p.id ?? p.positionId ?? p.name ?? '', name: p.name ?? p.positionName ?? '' }));
+          const positionsList: Position[] = pos.map((p) => ({ 
+            id: p.id ?? p.positionId ?? p.name ?? '', 
+            name: p.name ?? p.positionName ?? '' 
+          }));
           setPositions(positionsList);
           const fetches = positionsList.map(p => fetch(`/api/candidates/${p.id}`, { credentials: 'include' }).then(r => r.ok ? r.json() : []));
           const results = await Promise.all(fetches);
           const m: Record<string, Candidate[]> = {};
           positionsList.forEach((p, idx) => {
-            m[p.id] = results[idx] ?? [];
+            m[p.id] = results[idx] as Candidate[] ?? [];
           });
           if (mounted) setCandsByPos(m);
         }
@@ -64,7 +76,7 @@ const VotingPanel = () => {
   const castVote = async (posId: string) => {
     const candidateId = selected[posId];
     if (!candidateId) return;
-    const payload: any = {
+    const payload: VotePayload = {
       userId: user?.id,
       candidates: [{ id: candidateId }],
     };
@@ -76,7 +88,6 @@ const VotingPanel = () => {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        // reset selection for this position and show success toast
         setSelected(prev => ({ ...prev, [posId]: null }));
         setToast({ open: true, title: 'Vote Cast', message: 'Your vote has been recorded.', variant: 'success' });
       } else {
@@ -128,6 +139,6 @@ const VotingPanel = () => {
       </div>
     </div>
   );
-};
+}
 
 export default VotingPanel;

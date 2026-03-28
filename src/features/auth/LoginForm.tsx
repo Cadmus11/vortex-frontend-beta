@@ -49,8 +49,9 @@ export default function LoginForm() {
               try {
                 setError(null);
                 await login(values.email, values.password);
-              } catch (err: any) {
-                setError(err.message);
+              } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Login failed";
+                setError(message);
               } finally {
                 setSubmitting(false);
               }

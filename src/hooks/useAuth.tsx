@@ -1,17 +1,15 @@
-"use client";
-
 import { createContext, useContext, useEffect, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL
 
-type User = {
+export type User = {
   id: string;
   email: string;
   role: "admin" | "voter";
   isVerified?: boolean;
 };
 
-type AuthContextType = {
+export type AuthContextType = {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -21,11 +19,10 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔥 Restore session on refresh
   const fetchMe = async () => {
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
@@ -40,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!res.ok) throw new Error();
 
-      const data = await res.json();
+      const data = await res.json() as { user: User };
       setUser(data.user);
     } catch {
       setUser(null);
@@ -61,13 +58,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json();
+    const data = await res.json() as { user?: User; error?: string };
 
     if (!res.ok) {
       throw new Error(data?.error || "Login failed");
     }
 
-    setUser(data.user);
+    if (data.user) {
+      setUser(data.user);
+    }
   };
 
   const logout = async () => {
@@ -76,12 +75,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         method: "POST",
         credentials: "include",
       });
-    } catch {}
+    } catch {
+      // ignore logout errors
+    }
 
     setUser(null);
   };
 
-  // ---------------- SIGNUP ----------------
   const signup = async (
     email: string,
     password: string,
@@ -95,13 +95,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ email, password, admission_number, role }),
     });
 
-    const data = await res.json();
+    const data = await res.json() as { user?: User; error?: string };
 
     if (!res.ok) {
       throw new Error(data?.error || "Signup failed");
     }
 
-    setUser(data.user);
+    if (data.user) {
+      setUser(data.user);
+    }
   };
 
   return (
@@ -109,10 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-};
+export { AuthProvider };
+export default AuthProvider;

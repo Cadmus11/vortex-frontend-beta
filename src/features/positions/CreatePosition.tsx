@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function CreatePosition() {
   const [name, setName] = useState('');
@@ -17,14 +17,14 @@ export default function CreatePosition() {
         credentials: 'include',
         body: JSON.stringify({ positionName: name }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json() as { error?: string };
       if (res.ok) {
         setMessage('Position created');
         setName('');
       } else {
         setMessage(data?.error ?? 'Failed to create position');
       }
-    } catch (err) {
+    } catch {
       setMessage('Error creating position');
     } finally {
       setLoading(false);

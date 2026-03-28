@@ -1,7 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/utils/api';
 
-type Election = { id: string; title?: string };
+interface Election {
+  id: string;
+  title?: string;
+}
+
+const getEnvVar = (key: string, fallback: string): string => {
+  const val = (import.meta.env as Record<string, string>)[key];
+  return typeof val === 'string' ? val : fallback;
+};
 
 export default function CreatePositionForm() {
   const [elections, setElections] = useState<Election[]>([]);
@@ -9,19 +17,16 @@ export default function CreatePositionForm() {
   const [selectedElection, setSelectedElection] = useState<string>('');
   const [name, setName] = useState('');
   const [candidateCount, setCandidateCount] = useState<number>(0);
-  const [confirm, setConfirm] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
-  const API_BASE = typeof (import.meta.env as any).VITE_API_URL === 'string' ? (import.meta.env as any).VITE_API_URL : '/api';
+  const API_BASE = getEnvVar('VITE_API_URL', '/api');
 
-  // fetch elections on mount
   useEffect(() => {
     const fetchE = async () => {
       try {
         const res = await api(`${API_BASE}/elections`, { method: 'GET' });
         if (res.ok) {
-          const data = await res.json();
-          // assume array of elections
+          const data = await res.json() as Election[];
           setElections(Array.isArray(data) ? data : []);
         }
       } catch {
@@ -29,13 +34,12 @@ export default function CreatePositionForm() {
       }
     };
     fetchE();
-  }, []);
+  }, [API_BASE]);
 
   const canSubmit = useMemo(() => {
     return (
-      name.trim().length > 0 &&
-      selectedElection.length > 0 &&
       name.trim().length >= 2 &&
+      selectedElection.length > 0 &&
       Number.isInteger(candidateCount) && candidateCount >= 0
     );
   }, [name, selectedElection, candidateCount]);
@@ -53,7 +57,7 @@ export default function CreatePositionForm() {
         method: 'POST',
         body: JSON.stringify({ position: name, electionId: selectedElection, candidateCount }),
       });
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
       if (res.ok) {
         setMessage('Position created.');
         setName('');
@@ -113,7 +117,6 @@ export default function CreatePositionForm() {
           {loading ? 'Creating...' : 'Create Position'}
         </button>
       </div>
-      {confirm && <p className="text-sm text-gray-300">{confirm}</p>}
       {message && <p className="text-sm text-gray-300">{message}</p>}
     </form>
   );

@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -16,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, UserPlus } from 'lucide-react';
 import { ThemeToggle } from '@/context/ThemeToggler';
 
-// Candidate form schema aligned with server side 'candidates' table
 const candidateSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   position: z.string().min(1, 'Position is required'),
@@ -26,31 +23,39 @@ const candidateSchema = z.object({
 
 type CandidateFormValues = z.infer<typeof candidateSchema>;
 
+interface Election {
+  id: string;
+  title?: string;
+}
+
+interface Position {
+  id: string;
+  name: string;
+}
+
 export default function AddCandidate() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [elections, setElections] = useState<Array<{ id: string; title?: string }>>([]);
-  const [positions, setPositions] = useState<Array<{ id: string; name: string }>>([]);
+  const [elections, setElections] = useState<Election[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
-  // fetch elections for dropdown
   useEffect(() => {
     fetch('/api/elections', { credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<Array<{ id: string; title?: string; name?: string }>>)
       .then((data) => {
         if (Array.isArray(data)) {
-          setElections(data.map((e: any) => ({ id: e.id, title: e.title ?? e.name ?? '' })));
+          setElections(data.map((e) => ({ id: e.id, title: e.title ?? e.name ?? '' })));
         }
       })
       .catch(() => {});
   }, []);
 
-  // fetch positions for dropdown (global positions)
   useEffect(() => {
     fetch('/api/positions', { credentials: "include" })
-      .then((r) => r.json())
-      .then((data: any[]) => {
+      .then((r) => r.json() as Promise<Array<{ positionId?: string; id?: string; positionName?: string; name?: string }>>)
+      .then((data) => {
         if (Array.isArray(data)) {
-          const mapped = data.map((p: any) => ({ id: p.positionId ?? p.id ?? '', name: p.positionName ?? p.name ?? '' }));
-          setPositions(mapped);
+          setPositions(data.map((p) => ({ id: p.positionId ?? p.id ?? '', name: p.positionName ?? p.name ?? '' })));
         }
       })
       .catch(() => {});
@@ -77,7 +82,7 @@ export default function AddCandidate() {
             body: formData,
           }
         );
-        const cloudData = await cloudRes.json();
+        const cloudData = await cloudRes.json() as { secure_url?: string };
         if (cloudData.secure_url) {
           finalImageUrl = cloudData.secure_url;
         }
@@ -102,8 +107,8 @@ export default function AddCandidate() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.error('Failed to create candidate', err);
+      const errData = await res.json().catch(() => ({}));
+      console.error('Failed to create candidate', errData);
       alert('Failed to create candidate');
       return;
     }
@@ -112,8 +117,6 @@ export default function AddCandidate() {
     console.log('Candidate created:', created);
     alert('Candidate Added Successfully');
   };
-
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,7 +138,7 @@ export default function AddCandidate() {
             <h1 className="text-lg font-bold">Add Election Candidate</h1>
             <Badge className="bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">Admin Panel</Badge>
           </span>
-          <span className="flex gap-4"><ThemeToggle /><Menu/></span>
+          <span className="flex gap-4"><ThemeToggle /><Menu /></span>
         </div>
 
         <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
@@ -144,14 +147,12 @@ export default function AddCandidate() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Name */}
               <div className="space-y-2">
                 <Label>Name</Label>
                 <Input placeholder="Enter candidate name" {...register('name')} />
                 {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
               </div>
 
-              {/* Position */}
               <div className="space-y-2">
                 <Label>Position</Label>
                 <Select onValueChange={(value) => setValue('position', value)}>
@@ -165,14 +166,12 @@ export default function AddCandidate() {
                 {errors.position && <p className="text-sm text-red-500">{errors.position.message}</p>}
               </div>
 
-              {/* Manifesto */}
               <div className="space-y-2">
                 <Label>Manifesto</Label>
                 <Textarea placeholder="Candidate manifesto" {...register('manifesto')} />
                 {errors.manifesto && <p className="text-sm text-red-500">{errors.manifesto.message}</p>}
               </div>
 
-              {/* Election */}
               <div className="space-y-2">
                 <Label>Election</Label>
                 <Select onValueChange={(value) => setValue('electionId', value)}>
@@ -185,7 +184,6 @@ export default function AddCandidate() {
                 </Select>
               </div>
 
-              {/* Image Upload */}
               <div className="space-y-3">
                 <Label>Candidate Image</Label>
                 <div className="flex items-center gap-4">

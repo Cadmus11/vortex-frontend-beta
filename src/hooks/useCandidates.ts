@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { api } from "@/utils/api"
 
-export type Candidate = {
+export interface Candidate {
   id: string
   name: string
   position: string
@@ -9,6 +9,16 @@ export type Candidate = {
   imageUrl?: string
   electionId?: string
   createdAt?: string
+}
+
+interface CandidateResponse {
+  id: number | string;
+  name: string;
+  position: string;
+  manifesto?: string;
+  imageUrl?: string;
+  electionId?: string;
+  createdAt?: string;
 }
 
 export function useCandidates() {
@@ -20,8 +30,8 @@ export function useCandidates() {
     try {
       const res = await api("/api/candidates", { method: "GET" })
       if (res.ok) {
-        const data = await res.json()
-        const mapped = data.map((c: any) => ({
+        const data = await res.json() as CandidateResponse[]
+        const mapped: Candidate[] = data.map((c) => ({
           id: String(c.id),
           name: c.name,
           position: c.position,
@@ -45,7 +55,7 @@ export function useCandidates() {
       body: JSON.stringify(candidate)
     })
     if (res.ok) {
-      const newCand = await res.json()
+      const newCand = await res.json() as Candidate
       setCandidates(prev => [...prev, newCand])
     }
   }
