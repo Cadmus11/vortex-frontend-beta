@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vortex-client
+  namespace: vortex-client
+  labels:
+    app: vortex-client
+    tier: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: vortex-client
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5173
+      protocol: TCP

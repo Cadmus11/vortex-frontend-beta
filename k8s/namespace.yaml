@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vortex-client
+  labels:
+    name: vortex-client
+    tier: frontend
