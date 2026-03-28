@@ -1,6 +1,7 @@
 import './App.css';
 import AppCenter from "./app/AppCenter";
 import { AuthProvider } from './hooks/useAuth'
+
 import { CookiesProvider } from 'react-cookie';
 import { useState } from 'react';
 

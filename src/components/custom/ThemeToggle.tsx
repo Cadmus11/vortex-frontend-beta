@@ -1,10 +1,10 @@
-import { useTheme } from "@/app/ThemeProvider"
+import { toggleTheme } from "@/app/ThemeProvider"
 import { Moon, Sun } from "lucide-react"
 import { Button } from "../ui/button"
 
 
 const ThemeToggle = () => {
-    const {theme, setTheme} = useTheme()
+    const {theme, setTheme} = toggleTheme()
   return (
    <Button variant={'ghost'} onClick={()=>setTheme(theme === 'dark'? 'light': "dark")} className="cursor-pointer ring-1 h-10 w-10">
 {
