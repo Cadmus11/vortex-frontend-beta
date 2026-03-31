@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL,
+        target: process.env.VITE_API_URL || "https://vortex-server-alpha-production.up.railway.app/api",
         changeOrigin: true,
         ws: true,
         secure: false

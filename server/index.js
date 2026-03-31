@@ -72,7 +72,7 @@ function requireRole(roles) {
 }
 
 // Auth routes
-app.post("/api/auth/sign-up", (req, res) => {
+app.post("/auth/sign-up", (req, res) => {
   const { email, admissionNumber, password } = req.body;
   if (!email || !password || !admissionNumber) {
     return res.status(400).json({ error: "Missing fields" });
@@ -96,7 +96,7 @@ app.post("/api/auth/sign-up", (req, res) => {
     });
 });
 
-app.post("/api/auth/sign-in", (req, res) => {
+app.post("/auth/sign-in", (req, res) => {
   const { email, password } = req.body;
   const user = users.find((u) => u.email === email && u.password === password);
   if (!user) return res.status(401).json({ error: "Invalid credentials" });
@@ -114,14 +114,14 @@ app.post("/api/auth/sign-in", (req, res) => {
   });
 });
 
-app.post("/api/auth/sign-out", (req, res) => {
+app.post("/auth/sign-out", (req, res) => {
   // Stateless demo: simply respond success
   res.json({ message: "Signed out" });
 });
 
 // Protected admin routes
 app.get(
-  "/api/admin/dashboard",
+  "/admin/dashboard",
   authMiddleware,
   requireRole(["admin"]),
   (req, res) => {
@@ -131,7 +131,7 @@ app.get(
 
 // Protected voter routes
 app.get(
-  "/api/voter/dashboard",
+  "/voter/dashboard",
   authMiddleware,
   requireRole(["voter"]),
   (req, res) => {
