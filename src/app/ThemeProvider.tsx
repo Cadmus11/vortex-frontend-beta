@@ -48,7 +48,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     themeStorage.set(newTheme)
   }
 
-  const toggleTheme = () => {
+   const toggleTheme = () => {
     const nextTheme: Theme = theme === "light" ? "dark" : "light"
     setTheme(nextTheme)
   }
@@ -59,3 +59,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     </ThemeContext.Provider>
   )
 }
+

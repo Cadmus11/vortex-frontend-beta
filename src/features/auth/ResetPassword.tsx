@@ -3,10 +3,10 @@ import { Eye, EyeClosed } from 'lucide-react';
 import { ArrowLeftCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-const getEnvVar = (key: string, fallback: string): string => {
-  const val = (import.meta.env as Record<string, string>)[key];
-  return typeof val === 'string' ? val : fallback;
-};
+// const getEnvVar = (key: string, fallback: string): string => {
+//   const val = (import.meta.env as Record<string, string>)[key];
+//   return typeof val === 'string' ? val : fallback;
+// };
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function ResetPassword() {
   const [message, setMessage] = useState<string>('');
   const [visibility, setVisibility] = useState<boolean>(false);
 
-  const API_BASE = getEnvVar('VITE_API_URL', '/api');
+  const API_BASE = import.meta.env.VITE_API_URL
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
