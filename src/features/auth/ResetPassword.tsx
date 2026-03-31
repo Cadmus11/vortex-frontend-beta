@@ -17,7 +17,7 @@ export default function ResetPassword() {
   const [message, setMessage] = useState<string>('');
   const [visibility, setVisibility] = useState<boolean>(false);
 
-  const API_BASE = import.meta.env.VITE_API_URL
+  const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
