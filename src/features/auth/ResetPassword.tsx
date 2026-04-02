@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeClosed, ArrowLeftCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { API_URL } from '../../config/api';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -11,8 +12,6 @@ export default function ResetPassword() {
   const [message, setMessage] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [visibility, setVisibility] = useState<boolean>(false);
-
-  const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +33,9 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/update-password`, {
+      const res = await fetch(`${API_URL}/auth/update-password`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, confirmPassword }),
       });

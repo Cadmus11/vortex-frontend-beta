@@ -1,6 +1,5 @@
 import { createContext, useEffect, useContext, useState, useCallback } from "react";
-
-const API_URL = import.meta.env.VITE_API_URL as string;
+import { API_URL } from "../config/api";
 
 export type User = {
   id: string;

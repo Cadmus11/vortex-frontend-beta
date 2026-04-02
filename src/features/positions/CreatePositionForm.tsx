@@ -6,11 +6,6 @@ interface Election {
   title?: string;
 }
 
-const getEnvVar = (key: string, fallback: string): string => {
-  const val = (import.meta.env as Record<string, string>)[key];
-  return typeof val === 'string' ? val : fallback;
-};
-
 export default function CreatePositionForm() {
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(false);
@@ -19,12 +14,10 @@ export default function CreatePositionForm() {
   const [candidateCount, setCandidateCount] = useState<number>(0);
   const [message, setMessage] = useState<string | null>(null);
 
-  const API_BASE = getEnvVar('VITE_API_URL', '/api');
-
   useEffect(() => {
     const fetchE = async () => {
       try {
-        const res = await api(`${API_BASE}/elections`, { method: 'GET' });
+        const res = await api('/elections', { method: 'GET' });
         if (res.ok) {
           const data = await res.json() as Election[];
           setElections(Array.isArray(data) ? data : []);
@@ -34,7 +27,7 @@ export default function CreatePositionForm() {
       }
     };
     fetchE();
-  }, [API_BASE]);
+  }, []);
 
   const canSubmit = useMemo(() => {
     return (
@@ -53,7 +46,7 @@ export default function CreatePositionForm() {
     }
     setLoading(true);
     try {
-      const res = await api(`${API_BASE}/positions`, {
+      const res = await api('/positions', {
         method: 'POST',
         body: JSON.stringify({ position: name, electionId: selectedElection, candidateCount }),
       });

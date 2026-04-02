@@ -1,3 +1,5 @@
+import { API_URL } from "../config/api";
+
 export function useApi() {
   
     const request = async (
