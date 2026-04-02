@@ -1,12 +1,6 @@
 import { useState } from 'react';
-import { Eye, EyeClosed } from 'lucide-react';
-import { ArrowLeftCircle } from 'lucide-react';
+import { Eye, EyeClosed, ArrowLeftCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
-
-// const getEnvVar = (key: string, fallback: string): string => {
-//   const val = (import.meta.env as Record<string, string>)[key];
-//   return typeof val === 'string' ? val : fallback;
-// };
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -15,6 +9,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [visibility, setVisibility] = useState<boolean>(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || '/api'
@@ -22,6 +17,7 @@ export default function ResetPassword() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setIsSuccess(false);
 
     if (!email) {
       setMessage('Email is required');
@@ -43,13 +39,21 @@ export default function ResetPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, confirmPassword }),
       });
-      const data = await res.json() as { message?: string; error?: string };
+      const text = await res.text();
+      if (!text) {
+        setMessage('Empty response from server');
+        return;
+      }
+      const data = JSON.parse(text) as { message?: string; error?: string };
       if (res.ok) {
+        setIsSuccess(true);
         setMessage(data?.message ?? 'Password updated. You can now log in with your new password.');
       } else {
+        setIsSuccess(false);
         setMessage(data?.error ?? 'Failed to update password');
       }
     } catch {
+      setIsSuccess(false);
       setMessage('Error updating password');
     } finally {
       setLoading(false);
@@ -100,11 +104,22 @@ export default function ResetPassword() {
             <li className={`${password.length > 7 ? 'text-emerald-400' : 'text-red-500'} text-xs`}>Password must be at least 8 characters</li>
           </p>
 
-          <button type="submit" className="w-full py-2 rounded bg-slate-50 text-slate-950 text-sm cursor-pointer" disabled={loading}>
-            {loading ? 'Updating...' : 'Update Password'}
+          <button type="submit" className="w-full py-2 rounded bg-slate-50 text-slate-950 text-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              'Update Password'
+            )}
           </button>
         </form>
-        {message && <p className="mt-4 text-sm text-zinc-300 text-center">{message}</p>}
+        {message && (
+          <p className={`mt-4 text-sm text-center p-2 rounded ${isSuccess ? 'bg-green-500/10 border border-green-500/50 text-green-500' : 'bg-red-500/10 border border-red-500/50 text-red-500'}`}>
+            {message}
+          </p>
+        )}
       </div>
     </div>
   );

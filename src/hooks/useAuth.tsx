@@ -38,7 +38,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!res.ok) throw new Error();
 
-      const data = await res.json() as { user: User };
+      const text = await res.text();
+      if (!text) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = JSON.parse(text) as { user: User };
       setUser(data.user);
     } catch {
       setUser(null);
@@ -59,8 +66,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json() as { user?: User; error?: string };
-  //  export const token = data.user?.token
+    const text = await res.text();
+    if (!text) {
+      throw new Error("Empty response from server");
+    }
+
+    const data = JSON.parse(text) as { user?: User; error?: string };
     if (!res.ok) {
       throw new Error(data?.error || "Login failed");
     }
@@ -96,7 +107,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password, admission_number, role }),
     });
 
-    const data = await res.json() as { user?: User; error?: string };
+    const text = await res.text();
+    if (!text) {
+      throw new Error("Empty response from server");
+    }
+
+    const data = JSON.parse(text) as { user?: User; error?: string };
 
     if (!res.ok) {
       throw new Error(data?.error || "Signup failed");

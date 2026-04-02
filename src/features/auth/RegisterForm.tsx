@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const { signup } = useAuth();
 
   return (
@@ -32,12 +33,13 @@ export default function RegisterForm() {
             }}
             validationSchema={registerSchema}
             onSubmit={async (values, { setSubmitting }) => {
+              setError(null);
+              setSuccess(null);
               try {
-                setError(null);
-                // Destructure values from Formik
                 const { email, admissionNumber, password } = values;
-                await signup(email, admissionNumber, password);
-                navigate("/login");
+                await signup(email, password, admissionNumber);
+                setSuccess("Registration successful! Redirecting to login...");
+                setTimeout(() => navigate("/login"), 2000);
               } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Something went wrong";
                 setError(message);
@@ -93,16 +95,32 @@ export default function RegisterForm() {
                 </div>
 
                 {error && (
-                  <div className="text-red-500 text-sm text-center">{error}</div>
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm text-center p-2 rounded">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="bg-green-500/10 border border-green-500/50 text-green-500 text-sm text-center p-2 rounded">
+                    {success}
+                  </div>
                 )}
 
                 <Button
                   type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 cursor-pointer"
+                  className="w-full bg-green-600 hover:bg-green-700 cursor-pointer disabled:opacity-50"
                   disabled={isSubmitting}
                 >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Register
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Register
+                    </>
+                  )}
                 </Button>
 
                 <p className="text-center text-xs text-zinc-400">

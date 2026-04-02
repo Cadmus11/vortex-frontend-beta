@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Eye, EyeClosed, Lock, LogIn, Mail, Shield } from "lucide-react";
+import { Eye, EyeClosed, Lock, LogIn, Mail, Shield, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useEffect } from "react";
 
@@ -21,6 +21,7 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const { login, user } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState< boolean> (false);
 
   useEffect(() => {
@@ -46,9 +47,11 @@ export default function LoginForm() {
             initialValues={{ email: "", password: "" }}
             validationSchema={loginSchema}
             onSubmit={async (values, { setSubmitting }) => {
+              setError(null);
+              setSuccess(null);
               try {
-                setError(null);
                 await login(values.email, values.password);
+                setSuccess("Login successful! Redirecting...");
               } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Login failed";
                 setError(message);
@@ -97,7 +100,7 @@ export default function LoginForm() {
                       className="pl-10 bg-zinc-800 border-zinc-700 text-zinc-100"
                     />
                     <span className="h-8 w-8 rounded-sm ring-1 p-2 ring-amber-50/30 flex justify-center items-center" onClick={()=>setShowPassword(!showPassword)}>
-                
+                  
                       {
                         showPassword? <EyeClosed/> : <Eye/> 
                       }
@@ -111,18 +114,32 @@ export default function LoginForm() {
                   />
                 </div>
                 {error && (
-  <div className="text-red-500 text-sm text-center">
-    {error}
-  </div>
-)}
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm text-center p-2 rounded">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="bg-green-500/10 border border-green-500/50 text-green-500 text-sm text-center p-2 rounded">
+                    {success}
+                  </div>
+                )}
                 {/* Login Button */}
                 <Button
                   type="submit"
-                  className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-300 cursor-pointer"
+                  className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-300 cursor-pointer disabled:opacity-50"
                   disabled={isSubmitting}
                 >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Login
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Login
+                    </>
+                  )}
                 </Button>
 
                 {/* Forgot Password */}
