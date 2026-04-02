@@ -1,13 +1,12 @@
-import { createContext, useEffect, useContext, useState } from "react";
+import { createContext, useEffect, useContext, useState, useCallback } from "react";
 
-export const API_URL = import.meta.env.VITE_API_URL as string;
+const API_URL = import.meta.env.VITE_API_URL as string;
 
 export type User = {
   id: string;
   email: string;
   role: "admin" | "voter";
   isVerified?: boolean;
-  token: string
 };
 
 export type AuthContextType = {
@@ -16,15 +15,28 @@ export type AuthContextType = {
   logout: () => Promise<void>;
   signup: (email: string, password: string, admission_number: string, role?: "admin" | "voter") => Promise<void>;
   isLoading: boolean;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  if (!text) {
+    throw new Error("Empty response from server");
+  }
+  const data = JSON.parse(text) as { error?: string; message?: string } & T;
+  if (!res.ok) {
+    throw new Error(data.error || data.message || "Request failed");
+  }
+  return data as T;
+}
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchMe = async () => {
+  const fetchMe = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
         credentials: "include",
@@ -36,27 +48,22 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (!res.ok) throw new Error();
-
-      const text = await res.text();
-      if (!text) {
-        setUser(null);
-        setIsLoading(false);
-        return;
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
       }
 
-      const data = JSON.parse(text) as { user: User };
+      const data = await handleResponse<{ user: User }>(res);
       setUser(data.user);
     } catch {
       setUser(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMe();
-  }, []);
+  }, [fetchMe]);
 
   const login = async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/auth/sign-in`, {
@@ -66,18 +73,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
 
-    const text = await res.text();
-    if (!text) {
-      throw new Error("Empty response from server");
-    }
-
-    const data = JSON.parse(text) as { user?: User; error?: string };
-    if (!res.ok) {
-      throw new Error(data?.error || "Login failed");
-    }
+    const data = await handleResponse<{ user?: User }>(res);
 
     if (data.user) {
       setUser(data.user);
+    } else {
+      throw new Error("Login failed: No user data received");
     }
   };
 
@@ -89,9 +90,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {
       // ignore logout errors
+    } finally {
+      setUser(null);
     }
-
-    setUser(null);
   };
 
   const signup = async (
@@ -107,31 +108,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password, admission_number, role }),
     });
 
-    const text = await res.text();
-    if (!text) {
-      throw new Error("Empty response from server");
-    }
-
-    const data = JSON.parse(text) as { user?: User; error?: string };
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Signup failed");
-    }
-
-    if (data.user) {
-      setUser(data.user);
-    }
+    await handleResponse<{ user?: User; message?: string }>(res);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, signup, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, signup, isLoading, refreshUser: fetchMe }}>
       {children}
     </AuthContext.Provider>
   );
 }
-
-
-
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
