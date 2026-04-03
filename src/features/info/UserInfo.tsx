@@ -20,10 +20,8 @@ const UserInfo = () => {
  {
      userInstructions.map(
          (instruction, index) => <Card key={index} className="m-4">
-         <CardContent className="text-center text-lg">
-     {
-         instruction
-     }
+         <CardContent className="text-start text-sm">
+ {`${index + 1}. ${instruction}`}
          </CardContent>
      </Card>
      )
