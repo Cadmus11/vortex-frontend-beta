@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
+// import { email } from "zod";
 
 // Minimal, robust Menu component with safe role handling
 const Menu = () => {
@@ -21,7 +22,7 @@ const Menu = () => {
   // Safer role handling with sane defaults
   const roleRaw = (user?.role ?? '') as string;
   const isAdmin = roleRaw.toLowerCase() === 'admin';
-  const username = user?.email?.split('@')[0]?.slice(0, 8) ?? '';
+  const username = user?.email?.slice(0, user.email.indexOf('@')) ?? '';
   const userRole = isAdmin ? 'admin' : 'voter';
   
 
@@ -41,8 +42,14 @@ const Menu = () => {
           <div className="flex items-center gap-6 justify-between max-sm:flex-col">
             <span className="flex gap-2 items-center">
               <UserCircle />
-              <p className="max-sm:text-sm md:text-md capitalize">
-                {username ? `${username} - ` : ""}{userRole}
+              <p className="max-sm:text-sm md:text-md flex gap-3 justify-center items-center capitalize">
+                {
+                  username.length > 0 ? username : " "
+                }
+                
+                <span className="bg-slate-100/10 px-2 py-1 text-[8px] rounded ">
+                {userRole}
+                </span>
               </p>
             </span>
             <span className="flex items-center gap-4">
