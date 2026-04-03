@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ThemeToggle } from "@/context/ThemeToggler";
 import { useAuth } from "@/hooks/useAuth";
 import { Heart, Users, Loader2 } from "lucide-react";
+import { API_URL } from "../../config/api";
 
 type CampaignCandidate = {
   id: string;
@@ -29,7 +30,7 @@ const CampaignPlatform = () => {
 
   const fetchCampaignCandidates = async () => {
     try {
-      const res = await fetch("/api/campaigns/candidates", {
+      const res = await fetch(`${API_URL}/campaigns/candidates`, {
         credentials: "include",
       });
       if (res.ok) {
@@ -51,7 +52,7 @@ const CampaignPlatform = () => {
 
     setSupporting(candidateId);
     try {
-      const res = await fetch("/api/campaigns/support", {
+      const res = await fetch(`${API_URL}/campaigns/support`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

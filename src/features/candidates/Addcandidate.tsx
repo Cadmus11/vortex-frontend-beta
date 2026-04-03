@@ -11,12 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, UserPlus } from 'lucide-react';
+import { Upload, UserPlus, Shield } from 'lucide-react';
 import { ThemeToggle } from '@/context/ThemeToggler';
+import { API_URL } from '../../config/api';
 
 const candidateSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   position: z.string().min(1, 'Position is required'),
+  party: z.string().min(2, 'Party must be at least 2 characters'),
   manifesto: z.string().min(10, 'Manifesto must be at least 10 characters'),
   electionId: z.string().min(1, 'Election is required'),
 });
@@ -38,33 +40,63 @@ export default function AddCandidate() {
   const [elections, setElections] = useState<Election[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isLoadingElections, setIsLoadingElections] = useState(true);
+  const [isLoadingPositions, setIsLoadingPositions] = useState(true);
 
   useEffect(() => {
-    fetch('/api/elections', { credentials: "include" })
-      .then((r) => r.json() as Promise<Array<{ id: string; title?: string; name?: string }>>)
+    fetch(`${API_URL}/elections`, { credentials: "include" })
+      .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setElections(data.map((e) => ({ id: e.id, title: e.title ?? e.name ?? '' })));
+          setElections(data.map((e: { id: string; title?: string; name?: string }) => ({ 
+            id: e.id, 
+            title: e.title ?? e.name ?? '' 
+          })));
+        } else if (data.data && Array.isArray(data.data)) {
+          setElections(data.data.map((e: { id: string; title?: string; name?: string }) => ({ 
+            id: e.id, 
+            title: e.title ?? e.name ?? '' 
+          })));
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsLoadingElections(false));
   }, []);
 
   useEffect(() => {
-    fetch('/api/positions', { credentials: "include" })
-      .then((r) => r.json() as Promise<Array<{ positionId?: string; id?: string; positionName?: string; name?: string }>>)
+    fetch(`${API_URL}/positions`, { credentials: "include" })
+      .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setPositions(data.map((p) => ({ id: p.positionId ?? p.id ?? '', name: p.positionName ?? p.name ?? '' })));
+          setPositions(data.map((p: { positionId?: string; id?: string; positionName?: string; name?: string }) => ({ 
+            id: p.positionId ?? p.id ?? '', 
+            name: p.positionName ?? p.name ?? '' 
+          })));
+        } else if (data.data && Array.isArray(data.data)) {
+          setPositions(data.data.map((p: { positionId?: string; id?: string; positionName?: string; name?: string }) => ({ 
+            id: p.positionId ?? p.id ?? '', 
+            name: p.positionName ?? p.name ?? '' 
+          })));
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsLoadingPositions(false));
   }, []);
 
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } =
     useForm<CandidateFormValues>({
       resolver: zodResolver(candidateSchema),
+      defaultValues: {
+        name: '',
+        position: '',
+        party: '',
+        manifesto: '',
+        electionId: '',
+      },
     });
+
+  const selectedPosition = watch('position');
+  const selectedElection = watch('electionId');
 
   const onSubmit = async (data: CandidateFormValues) => {
     let finalImageUrl = imagePreview;
@@ -94,12 +126,13 @@ export default function AddCandidate() {
     const payload = {
       name: data.name,
       position: data.position,
+      party: data.party,
       manifesto: data.manifesto,
       electionId: data.electionId,
       imageUrl: finalImageUrl ?? null,
     };
 
-    const res = await fetch('/api/candidates', {
+    const res = await fetch(`${API_URL}/candidates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -130,76 +163,119 @@ export default function AddCandidate() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-6">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex gap-3 items-center">
-            <UserPlus className="w-4 h-4 text-blue-600" />
-            <h1 className="text-lg font-bold">Add Election Candidate</h1>
-            <Badge className="bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">Admin Panel</Badge>
-          </span>
-          <span className="flex gap-4"><ThemeToggle /><Menu /></span>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Add Candidate</h1>
+              <p className="text-sm text-muted-foreground">Create a new election candidate</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">Admin Panel</Badge>
+            <ThemeToggle />
+            <Menu />
+          </div>
+        </header>
 
-        <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+        <Card className="shadow-xl border-zinc-200 dark:border-zinc-800">
           <CardHeader>
-            <CardTitle>Candidate Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-600" />
+              Candidate Information
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input placeholder="Enter candidate name" {...register('name')} />
-                {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="Enter candidate full name" 
+                    {...register('name')} 
+                  />
+                  {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="party">Political Party</Label>
+                  <Input 
+                    id="party" 
+                    placeholder="e.g., Democratic Party" 
+                    {...register('party')} 
+                  />
+                  {errors.party && <p className="text-sm text-red-500">{errors.party.message}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Election</Label>
+                  <Select onValueChange={(value) => setValue('electionId', value)} value={selectedElection}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingElections ? "Loading..." : "Select election"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {elections.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.electionId && <p className="text-sm text-red-500">{errors.electionId.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Position</Label>
+                  <Select onValueChange={(value) => setValue('position', value)} value={selectedPosition}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingPositions ? "Loading..." : "Select position"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {positions.map((p) => (
+                        <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.position && <p className="text-sm text-red-500">{errors.position.message}</p>}
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Position</Label>
-                <Select onValueChange={(value) => setValue('position', value)}>
-                  <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
-                  <SelectContent>
-                    {positions.map((p) => (
-                      <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.position && <p className="text-sm text-red-500">{errors.position.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Manifesto</Label>
-                <Textarea placeholder="Candidate manifesto" {...register('manifesto')} />
+                <Label htmlFor="manifesto">Campaign Manifesto</Label>
+                <Textarea 
+                  id="manifesto" 
+                  placeholder="State your vision and plans if elected..." 
+                  className="min-h-[120px]"
+                  {...register('manifesto')} 
+                />
                 {errors.manifesto && <p className="text-sm text-red-500">{errors.manifesto.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label>Election</Label>
-                <Select onValueChange={(value) => setValue('electionId', value)}>
-                  <SelectTrigger><SelectValue placeholder="Select election" /></SelectTrigger>
-                  <SelectContent>
-                    {elections.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.title ?? e.id}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-3">
-                <Label>Candidate Image</Label>
+                <Label>Candidate Photo</Label>
                 <div className="flex items-center gap-4">
                   <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-700 transition">
                     <Upload className="w-4 h-4" />
-                    Upload Image
+                    Upload Photo
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
                   {imagePreview && (
-                    <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md border border-zinc-300 dark:border-zinc-700" />
+                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-md border border-zinc-300 dark:border-zinc-700" />
                   )}
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
-                {isSubmitting ? 'Adding...' : 'Add Candidate'}
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Adding Candidate...' : 'Add Candidate'}
               </Button>
             </form>
           </CardContent>

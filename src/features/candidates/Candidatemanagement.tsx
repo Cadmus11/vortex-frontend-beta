@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/context/ThemeToggler"
 import { useEffect, useState } from "react"
+import { API_URL } from "../../config/api"
 
 interface Candidate {
   id: number
@@ -38,7 +39,7 @@ export default function CandidatesManagement() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("/api/candidates", { credentials: "include" })
+        const res = await fetch(`${API_URL}/candidates`, { credentials: "include" })
         if (res.ok) {
           const data = await res.json() as Array<{ id: number; name: string; position: string; manifesto?: string }>
           const mapped: Candidate[] = data.map((c) => ({
@@ -146,7 +147,7 @@ export default function CandidatesManagement() {
       payload.imageUrl = url
     }
 
-    const res = await fetch("/api/candidates", {
+    const res = await fetch(`${API_URL}/candidates`, {
       method: "POST",
       credentials: "include",
       headers: { 'Content-Type': 'application/json' },

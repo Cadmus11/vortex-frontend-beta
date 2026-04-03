@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ThemeToggle } from "@/context/ThemeToggler"
 import { Activity, Calendar, Clock, Shield, Users } from "lucide-react"
 import { useEffect, useState } from "react"
+import { API_URL } from "../../config/api"
 
 interface Election {
   id: string
@@ -36,9 +37,9 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [electionsRes, positionsRes, candidatesRes] = await Promise.all([
-          fetch("/api/elections", { credentials: "include" }),
-          fetch("/api/positions", { credentials: "include" }),
-          fetch("/api/candidates", { credentials: "include" }),
+          fetch(`${API_URL}/elections`, { credentials: "include" }),
+          fetch(`${API_URL}/positions`, { credentials: "include" }),
+          fetch(`${API_URL}/candidates`, { credentials: "include" }),
         ])
 
         const electionsData: Election[] = electionsRes.ok ? await electionsRes.json() : []

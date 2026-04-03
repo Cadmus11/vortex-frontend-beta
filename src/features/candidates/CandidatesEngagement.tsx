@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { Heart, MessageCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 import Menu from "@/components/custom/Menu"
+import { API_URL } from "../../config/api"
 
 interface CandidateAPI {
   id: number | string;
@@ -32,7 +33,7 @@ export default function CandidatesEngagementPage() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("/api/candidates", { credentials: "include" })
+        const res = await fetch(`${API_URL}/candidates`, { credentials: "include" })
         const data = await res.json() as CandidateAPI[]
         const mapped: CandidateUI[] = data.map((c) => ({
           id: String(c.id),

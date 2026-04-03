@@ -1,10 +1,8 @@
 import './App.css';
 import AppCenter from "./app/AppCenter";
 import { AuthProvider } from './hooks/useAuth'
-
 import { CookiesProvider } from 'react-cookie';
 import { useState } from 'react';
-
 
 const App = () => {
   const [showConsent, setShowConsent] = useState(() => {
@@ -19,7 +17,7 @@ const App = () => {
   return (
     <CookiesProvider>
       <AuthProvider>
-        <AppCenter/>
+        <AppCenter />
       </AuthProvider>
       {showConsent && (
         <div className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 flex justify-between items-center z-50">

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import { ThemeToggle } from "@/context/ThemeToggler"
+import { API_URL } from "../../config/api"
 import {
   AlertCircle,
   Check,
@@ -107,7 +108,7 @@ export default function UsersAdmin() {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch("/api/users", { credentials: "include" })
+      const res = await fetch(`${API_URL}/users`, { credentials: "include" })
       if (res.ok) {
         const data = await res.json()
         setUsers(data.data || [])
@@ -186,7 +187,7 @@ export default function UsersAdmin() {
   const handleCreate = async (data: UserFormValues) => {
     setIsSubmitting(true)
     try {
-      const res = await fetch("/api/users", {
+      const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -212,7 +213,7 @@ export default function UsersAdmin() {
     if (!selectedUser) return
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/users?id=${selectedUser.id}`, {
+      const res = await fetch(`${API_URL}/users?id=${selectedUser.id}`, {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -238,7 +239,7 @@ export default function UsersAdmin() {
     if (!selectedUser) return
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/users?id=${selectedUser.id}`, {
+      const res = await fetch(`${API_URL}/users?id=${selectedUser.id}`, {
         method: "DELETE",
         credentials: "include",
       })

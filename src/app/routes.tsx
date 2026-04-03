@@ -6,6 +6,7 @@ import Dashboard from "@/features/dashboard/Dashboard";
 import FaceGate from "@/features/face/FaceGate";
 import Info from "@/features/info/Info";
 import UserInfo from "@/features/info/UserInfo";
+import VoterProfile from "@/features/profile/VoterProfile";
 import ElectionSetup from "@/features/voting/ElectionSetup";
 import VotingPanel from "@/features/voting/VotingPanel";
 import { Route, Routes, Outlet, Navigate } from "react-router";
@@ -43,7 +44,6 @@ const AppProtectedRoutes = () => {
 
       {/* Admin routes */}
       <Route element={<AdminRoutes />}>
-        <Route path="/admin" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/election" element={<ElectionSetup />} />
         <Route path="/admin/positions" element={<AdminPositions />} />
@@ -57,10 +57,10 @@ const AppProtectedRoutes = () => {
 
       {/* Voter routes */}
       <Route element={<VoterRoutes />}>
-        <Route path="/voter" element={<Dashboard />} />
+        
         <Route path="/voter/dashboard" element={<Dashboard />} />
         <Route path="/voter/info" element={<UserInfo />} />
-        <Route path="/voter/profile" element={<Info />} />
+        <Route path="/voter/profile" element={<VoterProfile />} />
         <Route path="/voter/campaigns" element={<CampaignPlatform />} />
         <Route path="/voter/cast-votes" element={<VotingPanel />} />
         <Route path="/voter/face-verification" element={<FaceGate />} />

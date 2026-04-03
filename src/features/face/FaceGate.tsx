@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/context/ThemeToggler";
 import { cn } from "@/lib/utils";
 import { Camera, ScanLine } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { API_URL } from "../../config/api";
 
 interface FaceGateProps {
   onVerified?: () => void;
@@ -142,7 +143,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
 
     try {
       const payload = { image: dataURL };
-      const res = await fetch("/api/face/embeddings", {
+      const res = await fetch(`${API_URL}/face/embeddings`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

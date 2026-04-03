@@ -8,6 +8,7 @@ import { Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Toast from "@/components/ui/toast";
+import { API_URL } from "../../config/api";
 
 interface Candidate {
   id: string;
@@ -45,7 +46,7 @@ function VotingPanel() {
     let mounted = true;
     (async () => {
       try {
-        const resPos = await fetch('/api/positions', { credentials: 'include' });
+        const resPos = await fetch(`${API_URL}/positions`, { credentials: 'include' });
         if (resPos.ok) {
           const pos = await resPos.json() as PositionResponse[];
           if (!mounted) return;
@@ -54,7 +55,7 @@ function VotingPanel() {
             name: p.name ?? p.positionName ?? '' 
           }));
           setPositions(positionsList);
-          const fetches = positionsList.map(p => fetch(`/api/candidates/${p.id}`, { credentials: 'include' }).then(r => r.ok ? r.json() : []));
+          const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, { credentials: 'include' }).then(r => r.ok ? r.json() : []));
           const results = await Promise.all(fetches);
           const m: Record<string, Candidate[]> = {};
           positionsList.forEach((p, idx) => {
@@ -81,7 +82,7 @@ function VotingPanel() {
       candidates: [{ id: candidateId }],
     };
     try {
-      const res = await fetch('/api/votes', {
+      const res = await fetch(`${API_URL}/votes`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
