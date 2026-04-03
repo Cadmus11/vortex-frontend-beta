@@ -1,7 +1,4 @@
-import { useAuth } from "./useAuth"
-
 export function useApi() {
-    const { user } = useAuth()
   
     const request = async (
       url: string,
@@ -9,9 +6,9 @@ export function useApi() {
     ) => {
       const res = await fetch(url, {
         ...options,
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user?.token}`,
           ...options.headers,
         },
       })
