@@ -1,8 +1,8 @@
-import Menu from "@/components/custom/Menu"
+
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThemeToggle } from "@/context/ThemeToggler"
-import { Activity, Calendar, Clock, Shield, Users } from "lucide-react"
+
+import { Activity, Calendar, Clock, Shield, Users, LayoutDashboardIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { API_URL } from "../../config/api"
 
@@ -10,10 +10,16 @@ interface Election {
   id: string
   title: string
   description?: string
-  startTime: string
-  endTime: string
-  isActive: boolean
+  startDate: string
+  endDate: string
+  status: 'draft' | 'active' | 'ended' | 'cancelled'
   createdAt?: string
+}
+
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
 }
 
 interface Stats {
@@ -37,21 +43,25 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [electionsRes, positionsRes, candidatesRes] = await Promise.all([
-          fetch(`${API_URL}/elections`, { credentials: "include" }),
-          fetch(`${API_URL}/positions`, { credentials: "include" }),
-          fetch(`${API_URL}/candidates`, { credentials: "include" }),
+          fetch(`${API_URL}/elections`),
+          fetch(`${API_URL}/positions`),
+          fetch(`${API_URL}/candidates`),
         ])
 
-        const electionsData: Election[] = electionsRes.ok ? await electionsRes.json() : []
-        const positionsData = positionsRes.ok ? await positionsRes.json() : []
-        const candidatesData = candidatesRes.ok ? await candidatesRes.json() : []
+        const electionsJson: ApiResponse<Election[]> = electionsRes.ok ? await electionsRes.json() : { success: false }
+        const positionsJson: ApiResponse<unknown[]> = positionsRes.ok ? await positionsRes.json() : { success: false }
+        const candidatesJson: ApiResponse<unknown[]> = candidatesRes.ok ? await candidatesRes.json() : { success: false }
+
+        const electionsData = electionsJson.success ? (electionsJson.data || []) : []
+        const positionsData = positionsJson.success ? (positionsJson.data || []) : []
+        const candidatesData = candidatesJson.success ? (candidatesJson.data || []) : []
 
         setElections(electionsData)
         setStats({
           totalElections: electionsData.length,
-          activeElections: electionsData.filter((e) => e.isActive).length,
-          totalPositions: Array.isArray(positionsData) ? positionsData.length : 0,
-          totalCandidates: Array.isArray(candidatesData) ? candidatesData.length : 0,
+          activeElections: electionsData.filter((e) => e.status === 'active').length,
+          totalPositions: positionsData.length,
+          totalCandidates: candidatesData.length,
         })
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error)
@@ -64,12 +74,12 @@ export default function Dashboard() {
   }, [])
 
   const nextElection = elections
-    .filter((e) => new Date(e.startTime) > new Date())
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
+    .filter((e) => new Date(e.startDate) > new Date())
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0]
 
   const getCountdown = () => {
     if (!nextElection) return "—"
-    const diff = new Date(nextElection.startTime).getTime() - Date.now()
+    const diff = new Date(nextElection.startDate).getTime() - Date.now()
     if (diff <= 0) return "Started"
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
@@ -88,7 +98,7 @@ export default function Dashboard() {
     <div className="space-y-6 p-2">
       <header className="flex justify-between items-center p-4">
         <h1 className="text-lg flex items-center gap-3">
-          <Shield className="h-8 w-8 text-blue-600 " />
+          <LayoutDashboardIcon className="h-8 w-8 text-blue-600" />
           <span className="max-sm:hidden">Vortex Command Dashboard</span>
         </h1>
 
@@ -96,8 +106,7 @@ export default function Dashboard() {
           <Badge className="bg-emerald-500 text-white">
             Live
           </Badge>
-          <span className="max-sm:hidden"> <ThemeToggle /></span>
-          <Menu />
+        
         </div>
       </header>
 
@@ -147,11 +156,11 @@ export default function Dashboard() {
                       <div>
                         <p className="font-medium">{election.title}</p>
                         <p className="text-sm text-zinc-500">
-                          {formatDate(election.startTime)} - {formatDate(election.endTime)}
+                          {formatDate(election.startDate)} - {formatDate(election.endDate)}
                         </p>
                       </div>
-                      <Badge variant={election.isActive ? "default" : "secondary"}>
-                        {election.isActive ? "Active" : "Inactive"}
+                      <Badge variant={election.status === 'active' ? "default" : "secondary"}>
+                        {election.status}
                       </Badge>
                     </div>
                   ))}
@@ -189,7 +198,7 @@ function StatCard({
   icon: React.ReactNode
 }) {
   return (
-    <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 ">
+    <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
       <CardContent className="flex justify-between items-center">
         <div>
           <p className="text-sm text-zinc-500">{title}</p>

@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 
 import { API_URL } from "../../config/api"
+import { useAuth } from "@/hooks/useAuth"
 
 /* ---------------------- Schema ---------------------- */
 const electionSchema = z.object({
@@ -46,13 +47,15 @@ const getISODateTime = (date: string, time: string) =>
   new Date(`${date}T${time}`).toISOString()
 
 /* ---------------------- Reusable Field ---------------------- */
-function FormField({
-  id,
-  label,
-  icon: Icon,
-  error,
-  children,
-}: any) {
+interface FormFieldProps {
+  id: string;
+  label: string;
+  icon?: React.ElementType;
+  error?: { message?: string };
+  children: React.ReactNode;
+}
+
+function FormField({ id, label, icon: Icon, error, children }: FormFieldProps) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="flex items-center gap-2">
@@ -74,6 +77,7 @@ function FormField({
 
 /* ---------------------- Component ---------------------- */
 export default function ElectionSetup() {
+  const { user } = useAuth()
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
 
@@ -109,14 +113,14 @@ export default function ElectionSetup() {
 
       const res = await fetch(`${API_URL}/elections`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: data.name,
           description: data.description,
-          startTime,
-          endTime,
-          isActive: true,
+          startDate: startTime,
+          endDate: endTime,
+          createdBy: user?.id,
+          status: 'draft',
         }),
       })
 
@@ -133,10 +137,11 @@ export default function ElectionSetup() {
 
       setSubmitStatus("success")
       reset()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
       setSubmitStatus("error")
-      setErrorMessage(err.message || "Network error. Please try again.")
+      const message = err instanceof Error ? err.message : "Network error. Please try again."
+      setErrorMessage(message)
     }
   }
 

@@ -29,7 +29,7 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
 
         const data = (await res.json()) as Election[];
         setElections(Array.isArray(data) ? data : []);
-      } catch (err) {
+      } catch {
         setMessage("Failed to load elections.");
       } finally {
         setFetching(false);
@@ -71,11 +71,11 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
         }),
       });
 
-      let data: any = null;
+      let data: { error?: string } | null = null;
       try {
         data = await res.json();
       } catch {
-        //error
+        // Unable to parse JSON
       }
 
       if (!res.ok) {
@@ -90,8 +90,9 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
 
       // ✅ Notify parent to refresh list
       onCreated?.();
-    } catch (err: any) {
-      setMessage(err.message || "Network error.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Network error.";
+      setMessage(message);
     } finally {
       setLoading(false);
     }

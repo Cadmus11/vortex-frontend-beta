@@ -33,8 +33,8 @@ const VoterProfile = () => {
               </div>
 
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-medium">{user?.name || 'N/A'}</p>
+                <p className="text-sm text-muted-foreground">Username</p>
+                <p className="font-medium">{user?.username || 'N/A'}</p>
               </div>
 
               <div className="space-y-1">

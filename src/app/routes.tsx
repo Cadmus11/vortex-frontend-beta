@@ -13,15 +13,20 @@ import AdminPositions from "@/features/positions/AdminPositions";
 import CampaignPlatform from "@/features/campaigns/CampaignPlatform";
 import CandidatesManagement from "@/features/candidates/Candidatemanagement";
 import NotFound from "@/pages/NotFound";
-import AuthLayout from "./AuthLayout";
 
 const AppProtectedRoutes = () => {
   return (
     <Routes>
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<SignIn routing="path" path="/login" />} />
-        <Route path="/register" element={<SignUp routing="path" path="/register" />} />
-      </Route>
+      <Route path="/login" element={
+        <div className='w-dvw h-dvh flex justify-center items-center'>
+          <SignIn routing="path" path="/login" signUpUrl="/register" afterSignInUrl="/voter/dashboard" />
+        </div>
+      } />
+      <Route path="/register" element={
+        <div className='w-dvw h-dvh flex justify-center items-center'>
+          <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/voter/dashboard" />
+        </div>
+      } />
 
       <Route element={<ProtectedRoute roles={["voter"]} />}>
         <Route path="/voter/dashboard" element={<Dashboard />} />

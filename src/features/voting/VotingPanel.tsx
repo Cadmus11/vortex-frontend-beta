@@ -1,8 +1,8 @@
-import Menu from "@/components/custom/Menu";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/context/ThemeToggler";
+
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -48,14 +48,18 @@ function VotingPanel() {
       try {
         const resPos = await fetch(`${API_URL}/positions`, { credentials: 'include' });
         if (resPos.ok) {
-          const pos = await resPos.json() as PositionResponse[];
-          if (!mounted) return;
-          const positionsList: Position[] = pos.map((p) => ({ 
+          const posRes = await resPos.json();
+          if (!mounted || !posRes.success) return;
+          const positionsList: Position[] = posRes.data.map((p: PositionResponse) => ({ 
             id: p.id ?? p.positionId ?? p.name ?? '', 
             name: p.name ?? p.positionName ?? '' 
           }));
           setPositions(positionsList);
-          const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, { credentials: 'include' }).then(r => r.ok ? r.json() : []));
+          const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, { credentials: 'include' }).then(async r => {
+            if (!r.ok) return [];
+            const data = await r.json();
+            return data.success ? data.data : [];
+          }));
           const results = await Promise.all(fetches);
           const m: Record<string, Candidate[]> = {};
           positionsList.forEach((p, idx) => {
@@ -100,7 +104,7 @@ function VotingPanel() {
   };
 
   return (
-    <div style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial' }} className="min-h-screen bg-gradient-to-br from-[#0b1022] via-[#1e1b44] to-[#0b1022] text-white">
+    <div style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial' }} className="min-h-screen bg-linear-to-br from-[#0b1022] via-[#1e1b44] to-[#0b1022] text-white">
       <Toast open={toast.open} onClose={() => setToast({ open: false })} title={toast.title} message={toast.message} variant={toast.variant} />
       <div className="flex justify-between p-4 items-center">
         <h1 className="text-lg capitalize flex items-center gap-2">
@@ -108,8 +112,7 @@ function VotingPanel() {
         </h1>
         <div className="flex gap-4 items-center">
           {Object.values(selected).some(v => v) && <Badge className="px bg-emerald-500">selected</Badge>}
-          <span className="hidden sm:block"><ThemeToggle /></span>
-          <Menu />
+         
         </div>
       </div>
 

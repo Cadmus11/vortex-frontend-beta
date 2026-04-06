@@ -61,14 +61,14 @@ const MenuSheet = () => {
           <MenuIcon className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+      <SheetContent side="left" className="w-70 p-0 flex flex-col">
         <SheetHeader className="p-4 pb-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <UserButton afterSignOutUrl="/login" />
               <div className="min-w-0">
                 <SheetTitle className="text-sm font-semibold truncate">
-                  {user?.name || 'User'}
+                  {user?.username || 'User'}
                 </SheetTitle>
                 <p className="text-xs text-muted-foreground capitalize">
                   {user?.role || 'voter'}

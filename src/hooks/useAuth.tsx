@@ -39,7 +39,7 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     setBackendUser(null);
-    await signOut();
+    await signOut({ redirectUrl: '/login' });
   }, [signOut]);
 
   const signup = useCallback(async () => {
@@ -51,7 +51,7 @@ export function useAuth() {
 
     setIsSyncing(true);
     try {
-      const response = await fetch(`${API_URL}/auth/clerk-webhook`, {
+      const webhookRes = await fetch(`${API_URL}/auth/clerk-webhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,13 +67,15 @@ export function useAuth() {
         }),
       });
 
-      if (response.ok) {
+      if (webhookRes.ok) {
         const userRes = await fetch(`${API_URL}/auth/clerk-sync`, {
           headers: { 'x-clerk-user-id': clerkUser.id },
         });
         if (userRes.ok) {
-          const data = await userRes.json();
-          setBackendUser(data.user);
+          const userData = await userRes.json();
+          if (userData.user) {
+            setBackendUser(userData.user);
+          }
         }
       }
     } catch (error) {

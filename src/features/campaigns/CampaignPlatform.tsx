@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import Menu from "@/components/custom/Menu";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/context/ThemeToggler";
+
 import { useAuth } from "@/hooks/useAuth";
 import { Heart, Users, Loader2 } from "lucide-react";
 import { API_URL } from "../../config/api";
@@ -34,8 +34,10 @@ const CampaignPlatform = () => {
         credentials: "include",
       });
       if (res.ok) {
-        const data = await res.json();
-        setCandidates(data);
+        const response = await res.json();
+        if (response.success) {
+          setCandidates(response.data);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch campaign candidates:", err);
@@ -60,18 +62,20 @@ const CampaignPlatform = () => {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setCandidates((prev) =>
-          prev.map((c) =>
-            c.id === candidateId
-              ? {
-                  ...c,
-                  supportCount: data.supportCount,
-                  isSupported: data.isSupported,
-                }
-              : c
-          )
-        );
+        const response = await res.json();
+        if (response.success) {
+          setCandidates((prev) =>
+            prev.map((c) =>
+              c.id === candidateId
+                ? {
+                    ...c,
+                    supportCount: response.data.supportCount,
+                    isSupported: response.data.isSupported,
+                  }
+                : c
+            )
+          );
+        }
       }
     } catch (err) {
       console.error("Failed to support candidate:", err);
@@ -81,7 +85,7 @@ const CampaignPlatform = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+    <div className="min-h-screen bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -89,16 +93,15 @@ const CampaignPlatform = () => {
               <Users className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Campaign Platform</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-lg font-bold">Campaign Platform</h1>
+              <p className="text-xs text-muted-foreground">
                 Support your preferred candidates before the election
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="text-sm">Campaign Mode</Badge>
-            <ThemeToggle />
-            <Menu />
+         
           </div>
         </header>
 
