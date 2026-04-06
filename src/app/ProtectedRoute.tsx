@@ -7,21 +7,24 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isSignedIn } = useAuth();
 
-  if (isLoading) return null; // wait for auth state to resolve
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-  if (!user) {
-    // user not logged in → redirect to login page
+  if (!isSignedIn) {
     return <Navigate to="/login" replace />;
   }
 
   if (roles && user?.role && !roles.includes(user.role)) {
-    // user does not have required role
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
-  // user has required role → show the route
   return <>{children}</>;
 };
 

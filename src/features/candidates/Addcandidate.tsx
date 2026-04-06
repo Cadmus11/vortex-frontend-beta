@@ -99,7 +99,7 @@ export default function AddCandidate() {
   const selectedElection = watch('electionId');
 
   const onSubmit = async (data: CandidateFormValues) => {
-    let finalImageUrl = imagePreview;
+    let finalImageUrl: string | null = imagePreview;
 
     if (selectedImageFile) {
       const formData = new FormData();
@@ -107,19 +107,45 @@ export default function AddCandidate() {
       formData.append('upload_preset', 'vortex_candidates');
 
       try {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+        
+        if (!cloudName) {
+          console.error('Cloudinary cloud name not configured');
+          throw new Error('Cloudinary not configured');
+        }
+
         const cloudRes = await fetch(
-          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
           {
             method: 'POST',
             body: formData,
           }
         );
-        const cloudData = await cloudRes.json() as { secure_url?: string };
-        if (cloudData.secure_url) {
-          finalImageUrl = cloudData.secure_url;
+
+        if (!cloudRes.ok) {
+          const errorText = await cloudRes.text();
+          console.error('Cloudinary upload failed:', errorText);
+          throw new Error('Cloudinary upload failed');
+        }
+
+        const cloudData = await cloudRes.json() as { 
+          secure_url?: string; 
+          url?: string;
+          error?: { message?: string };
+        };
+        
+        if (cloudData.error?.message) {
+          throw new Error(cloudData.error.message);
+        }
+        
+        finalImageUrl = cloudData.secure_url || cloudData.url || null;
+        
+        if (!finalImageUrl) {
+          console.warn('No image URL in Cloudinary response:', cloudData);
         }
       } catch (err) {
         console.error('Image upload failed:', err);
+        alert('Image upload failed. Candidate will be created without image.');
       }
     }
 
@@ -142,13 +168,16 @@ export default function AddCandidate() {
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       console.error('Failed to create candidate', errData);
-      alert('Failed to create candidate');
+      alert(errData?.error || errData?.message || 'Failed to create candidate');
       return;
     }
 
     const created = await res.json();
     console.log('Candidate created:', created);
     alert('Candidate Added Successfully');
+    
+    setImagePreview(null);
+    setSelectedImageFile(null);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +192,7 @@ export default function AddCandidate() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+    <div className="min-h-screen bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -250,7 +279,7 @@ export default function AddCandidate() {
                 <Textarea 
                   id="manifesto" 
                   placeholder="State your vision and plans if elected..." 
-                  className="min-h-[120px]"
+                  className="min-h-30"
                   {...register('manifesto')} 
                 />
                 {errors.manifesto && <p className="text-sm text-red-500">{errors.manifesto.message}</p>}

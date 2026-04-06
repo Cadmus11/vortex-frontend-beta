@@ -14,11 +14,9 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-
   const [selectedElection, setSelectedElection] = useState("");
   const [name, setName] = useState("");
   const [candidateCount, setCandidateCount] = useState<number>(0);
-
   const [message, setMessage] = useState<string | null>(null);
 
   // 🔄 Fetch elections
@@ -77,7 +75,7 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
       try {
         data = await res.json();
       } catch {
-        // fallback if no JSON
+        //error
       }
 
       if (!res.ok) {
