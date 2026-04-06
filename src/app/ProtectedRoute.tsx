@@ -1,31 +1,26 @@
+import { Outlet } from "react-router"
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  roles?: Array<"admin" | "voter">;
-}
-
-const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ roles }: { roles?: Array<"admin" | "voter"> }) => {
   const { user, isLoading, isSignedIn } = useAuth();
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
   if (!isSignedIn) {
-    return <Navigate to="/login" replace />;
+    return null;
   }
 
   if (roles && user?.role && !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return null;
   }
 
-  return <>{children}</>;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

@@ -1,10 +1,11 @@
+import { Routes, Route, Navigate } from "react-router";
 import { SignIn, SignUp } from "@clerk/clerk-react";
+
 import Dashboard from "@/features/dashboard/Dashboard";
 import FaceGate from "@/features/face/FaceGate";
 import VoterProfile from "@/features/profile/VoterProfile";
 import ElectionSetup from "@/features/voting/ElectionSetup";
 import VotingPanel from "@/features/voting/VotingPanel";
-import { Routes, Route, Navigate } from "react-router";
 import ProtectedRoute from "./ProtectedRoute";
 import UsersAdmin from "@/features/users/UsersAdmin";
 import AdminElection from "@/features/elections/AdminElection";
@@ -23,7 +24,6 @@ const AppProtectedRoutes = () => {
       </Route>
 
       <Route element={<ProtectedRoute roles={["voter"]} />}>
-        <Route path="/" element={<Navigate to="/voter/dashboard" replace />} />
         <Route path="/voter/dashboard" element={<Dashboard />} />
         <Route path="/voter/profile" element={<VoterProfile />} />
         <Route path="/voter/campaigns" element={<CampaignPlatform />} />
@@ -42,6 +42,7 @@ const AppProtectedRoutes = () => {
         <Route path="/admin/face-verification" element={<FaceGate />} />
       </Route>
 
+      <Route path="/" element={<Navigate to="/voter/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

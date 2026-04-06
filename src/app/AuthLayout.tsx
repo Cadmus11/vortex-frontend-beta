@@ -1,20 +1,10 @@
+import { Outlet } from "react-router"
 
-import React from "react"
-
-interface AuthComponents{
-    children : React.ReactNode
-}
-
-const AuthLayout = ({children}:AuthComponents) => {
+const AuthLayout = () => {
   return (
-   <>
-   <div className='w-dvw h-dvh flex justify-center items-center'>
-    {
-        children
-    }
-
-   </div>
-   </>
+    <div className='w-dvw h-dvh flex justify-center items-center'>
+      <Outlet />
+    </div>
   )
 }
 

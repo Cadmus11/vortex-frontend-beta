@@ -6,6 +6,7 @@ export type User = {
   id: string;
   clerkId: string;
   email: string;
+  username: string;
   role: "admin" | "voter";
   isVerified?: boolean;
 };
@@ -107,6 +108,7 @@ export function useAuth() {
       id: backendUser?.id || clerkUser.id,
       clerkId: clerkUser.id,
       email: primaryEmail,
+      username: backendUser?.username || clerkUser.username || primaryEmail.split('@')[0],
       role: role as 'admin' | 'voter',
       isVerified: emailVerified,
     };
