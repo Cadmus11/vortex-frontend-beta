@@ -1,8 +1,9 @@
-import { Outlet } from "react-router"
+import { Outlet, Navigate, useLocation } from "react-router"
 import { useAuth } from "@/hooks/useAuth";
 
 const ProtectedRoute = ({ roles }: { roles?: Array<"admin" | "voter"> }) => {
   const { user, isLoading, isSignedIn } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -13,11 +14,12 @@ const ProtectedRoute = ({ roles }: { roles?: Array<"admin" | "voter"> }) => {
   }
 
   if (!isSignedIn) {
-    return null;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (roles && user?.role && !roles.includes(user.role)) {
-    return null;
+    const redirectPath = user.role === 'admin' ? '/admin/dashboard' : '/voter/dashboard';
+    return <Navigate to={redirectPath} replace />;
   }
 
   return <Outlet />;

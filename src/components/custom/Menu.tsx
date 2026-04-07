@@ -1,7 +1,7 @@
 import { navList, voterList } from "@/constants/navbar";
 import { ThemeToggle } from "@/context/ThemeToggler";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Menu as MenuIcon, LayoutDashboard, Vote, Megaphone, Users, FileText, ScanFace } from "lucide-react";
+import { LogOut, Menu as MenuIcon, LayoutDashboard, Vote, Megaphone, Users, FileText, ScanFace, BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -67,9 +67,14 @@ const MenuSheet = () => {
             <div className="flex items-center gap-3">
               <UserButton afterSignOutUrl="/login" />
               <div className="min-w-0">
-                <SheetTitle className="text-sm font-semibold truncate">
-                  {user?.username || 'User'}
-                </SheetTitle>
+                <div className="flex items-center gap-2">
+                  <SheetTitle className="text-sm font-semibold truncate">
+                    {user?.username || 'User'}
+                  </SheetTitle>
+                  {user?.isVerified && (
+                    <BadgeCheck className="h-4 w-4 text-green-500 fill-green-500/20" />
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground capitalize">
                   {user?.role || 'voter'}
                 </p>

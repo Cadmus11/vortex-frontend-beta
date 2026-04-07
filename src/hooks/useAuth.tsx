@@ -51,31 +51,21 @@ export function useAuth() {
 
     setIsSyncing(true);
     try {
-      const webhookRes = await fetch(`${API_URL}/auth/clerk-webhook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'user.updated',
-          data: {
-            id: clerkUser.id,
-            email_addresses: clerkUser.emailAddresses.map(e => ({
-              id: e.id,
-              email_address: e.emailAddress,
-            })),
-            public_metadata: { role: backendUser?.role || 'voter' },
-          },
-        }),
-      });
+      const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress 
+        || clerkUser.emailAddresses?.[0]?.emailAddress 
+        || '';
 
-      if (webhookRes.ok) {
-        const userRes = await fetch(`${API_URL}/auth/clerk-sync`, {
-          headers: { 'x-clerk-user-id': clerkUser.id },
-        });
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          if (userData.user) {
-            setBackendUser(userData.user);
-          }
+      const userRes = await fetch(`${API_URL}/auth/clerk-sync`, {
+        headers: { 
+          'x-clerk-user-id': clerkUser.id,
+          'x-clerk-user-email': primaryEmail,
+        },
+      });
+      
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        if (userData.success && userData.user) {
+          setBackendUser(userData.user);
         }
       }
     } catch (error) {
@@ -83,7 +73,7 @@ export function useAuth() {
     } finally {
       setIsSyncing(false);
     }
-  }, [clerkUser, backendUser?.role]);
+  }, [clerkUser]);
 
   useEffect(() => {
     if (clerkUser?.id) {
@@ -106,13 +96,15 @@ export function useAuth() {
       || clerkUser.emailAddresses?.[0]?.verification?.status === 'verified'
       || false;
 
+    const isVerified = backendUser?.isVerified ?? emailVerified;
+
     return {
       id: backendUser?.id || clerkUser.id,
       clerkId: clerkUser.id,
       email: primaryEmail,
       username: backendUser?.username || clerkUser.username || primaryEmail.split('@')[0],
       role: role as 'admin' | 'voter',
-      isVerified: emailVerified,
+      isVerified,
     };
   })();
 

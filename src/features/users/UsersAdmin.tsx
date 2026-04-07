@@ -76,11 +76,14 @@ type UpdateFormValues = z.infer<typeof updateUserSchema>
 
 interface User {
   id: string
+  clerkId: string
   email: string
+  username: string
   role: "admin" | "voter"
   admission_number?: string | null
   isVerified: boolean
-  created_at?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 type ModalType = "create" | "edit" | "delete" | null
