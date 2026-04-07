@@ -14,19 +14,25 @@ import CampaignPlatform from "@/features/campaigns/CampaignPlatform";
 import CandidatesManagement from "@/features/candidates/Candidatemanagement";
 import NotFound from "@/pages/NotFound";
 
+const SignInPage = () => (
+  <div className='w-dvw h-dvh flex justify-center items-center'>
+    <SignIn routing="path" path="/login" signUpUrl="/register" afterSignInUrl="/voter/dashboard" />
+  </div>
+);
+
+const SignUpPage = () => (
+  <div className='w-dvw h-dvh flex justify-center items-center'>
+    <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/voter/dashboard" />
+  </div>
+);
+
 const AppProtectedRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={
-        <div className='w-dvw h-dvh flex justify-center items-center'>
-          <SignIn routing="path" path="/login" signUpUrl="/register" afterSignInUrl="/voter/dashboard" />
-        </div>
-      } />
-      <Route path="/register" element={
-        <div className='w-dvw h-dvh flex justify-center items-center'>
-          <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/voter/dashboard" />
-        </div>
-      } />
+      <Route path="/login" element={<SignInPage />} />
+      <Route path="/login/:path" element={<SignInPage />} />
+      <Route path="/register" element={<SignUpPage />} />
+      <Route path="/register/:path" element={<SignUpPage />} />
 
       <Route element={<ProtectedRoute roles={["voter"]} />}>
         <Route path="/voter/dashboard" element={<Dashboard />} />
