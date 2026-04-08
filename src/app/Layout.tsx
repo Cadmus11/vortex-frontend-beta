@@ -11,7 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/register"
+  const isAuthPage = location.pathname.startsWith("/login") || location.pathname.startsWith("/register")
 
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
