@@ -46,7 +46,10 @@ export default function CandidatesManagement() {
 
   useEffect(() => {
     const load = async () => {
-      const headers = clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {};
+      const headers: Record<string, string> = {};
+      if (clerkUser?.id) {
+        headers['x-clerk-user-id'] = clerkUser.id;
+      }
       const [posRes, candRes] = await Promise.all([
         fetch(`${API_URL}/positions`, { credentials: "include", headers }),
         fetch(`${API_URL}/candidates`, { credentials: "include", headers }),

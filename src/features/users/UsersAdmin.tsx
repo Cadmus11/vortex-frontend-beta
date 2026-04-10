@@ -113,7 +113,10 @@ export default function UsersAdmin() {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
     try {
-      const headers = clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}
+      const headers: Record<string, string> = {};
+      if (clerkUser?.id) {
+        headers['x-clerk-user-id'] = clerkUser.id;
+      }
       const res = await fetch(`${API_URL}/users`, { credentials: "include", headers })
       if (res.ok) {
         const data = await res.json()
