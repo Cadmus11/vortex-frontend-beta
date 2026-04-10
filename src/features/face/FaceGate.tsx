@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Camera, ScanLine } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FaceGateProps {
   onVerified?: () => void;
@@ -27,6 +28,7 @@ interface EmbeddingResponse {
 }
 
 export default function FaceGate({ onVerified }: FaceGateProps) {
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<FaceDetectorAPI | null>(null);
@@ -142,8 +144,8 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     }
 
     try {
-      const payload = { image: dataURL };
-      const res = await fetch(`${API_URL}/face/embeddings`, {
+      const payload = { clerkId: user?.clerkId, faceEmbedding: dataURL };
+      const res = await fetch(`${API_URL}/face/register`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -159,10 +161,10 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
         onVerified?.();
       } else {
         const text = await res.text();
-        setLightingHint("Failed to save embeddings: " + text);
+        setLightingHint("Failed to complete verification: " + text);
       }
     } catch {
-      setLightingHint("Network error saving embeddings. Please try again.");
+      setLightingHint("Network error during verification. Please try again.");
     } finally {
       setScanning(false);
     }

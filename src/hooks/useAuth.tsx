@@ -56,6 +56,7 @@ export function useAuth() {
         || '';
 
       const userRes = await fetch(`${API_URL}/auth/clerk-sync`, {
+        credentials: "include",
         headers: { 
           'x-clerk-user-id': clerkUser.id,
           'x-clerk-user-email': primaryEmail,
@@ -90,7 +91,7 @@ export function useAuth() {
       || clerkUser.emailAddresses?.[0]?.emailAddress 
       || '';
 
-    const role = backendUser?.role || 'voter';
+    const role = backendUser?.role || (clerkUser.publicMetadata?.role as 'admin' | 'voter' | undefined) || 'voter';
 
     const emailVerified = clerkUser.primaryEmailAddress?.verification?.status === 'verified'
       || clerkUser.emailAddresses?.[0]?.verification?.status === 'verified'

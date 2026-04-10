@@ -27,8 +27,8 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
 
         if (!res.ok) throw new Error("Failed to fetch elections");
 
-        const data = (await res.json()) as Election[];
-        setElections(Array.isArray(data) ? data : []);
+        const payload = (await res.json()) as { success?: boolean; data?: Election[] };
+        setElections(payload.success && Array.isArray(payload.data) ? payload.data : []);
       } catch {
         setMessage("Failed to load elections.");
       } finally {
@@ -65,9 +65,9 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
       const res = await api("/positions", {
         method: "POST",
         body: JSON.stringify({
-          position: name.trim(),
+          name: name.trim(),
           electionId: selectedElection,
-          candidateCount,
+          order: candidateCount,
         }),
       });
 

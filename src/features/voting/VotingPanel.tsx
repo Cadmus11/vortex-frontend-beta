@@ -21,6 +21,7 @@ interface Candidate {
 interface Position {
   id: string;
   name: string;
+  electionId?: string;
 }
 
 interface PositionResponse {
@@ -28,15 +29,19 @@ interface PositionResponse {
   positionId?: string;
   name?: string;
   positionName?: string;
+  electionId?: string;
 }
 
 interface VotePayload {
-  userId?: string;
-  candidates: Array<{ id: string }>;
+  clerkId?: string;
+  electionId: string;
+  positionId: string;
+  candidateId: string;
 }
 
 function VotingPanel() {
   const { user } = useAuth();
+  const [activeElectionId, setActiveElectionId] = useState<string | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [candsByPos, setCandsByPos] = useState<Record<string, Candidate[]>>({});
   const [selected, setSelected] = useState<Record<string, string | null>>({});
@@ -46,13 +51,21 @@ function VotingPanel() {
     let mounted = true;
     (async () => {
       try {
+        const electionsRes = await fetch(`${API_URL}/elections`, { credentials: 'include' });
+        if (electionsRes.ok) {
+          const electionsPayload = await electionsRes.json();
+          const elections = electionsPayload?.success && Array.isArray(electionsPayload.data) ? electionsPayload.data : [];
+          const active = elections.find((e: { status?: string }) => e.status === 'active') || elections[0];
+          if (mounted && active?.id) setActiveElectionId(active.id);
+        }
         const resPos = await fetch(`${API_URL}/positions`, { credentials: 'include' });
         if (resPos.ok) {
           const posRes = await resPos.json();
           if (!mounted || !posRes.success) return;
           const positionsList: Position[] = posRes.data.map((p: PositionResponse) => ({ 
             id: p.id ?? p.positionId ?? p.name ?? '', 
-            name: p.name ?? p.positionName ?? '' 
+            name: p.name ?? p.positionName ?? '',
+            electionId: p.electionId,
           }));
           setPositions(positionsList);
           const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, { credentials: 'include' }).then(async r => {
@@ -80,10 +93,12 @@ function VotingPanel() {
 
   const castVote = async (posId: string) => {
     const candidateId = selected[posId];
-    if (!candidateId) return;
+    if (!candidateId || !activeElectionId || !user?.clerkId) return;
     const payload: VotePayload = {
-      userId: user?.id,
-      candidates: [{ id: candidateId }],
+      clerkId: user.clerkId,
+      electionId: activeElectionId,
+      positionId: posId,
+      candidateId,
     };
     try {
       const res = await fetch(`${API_URL}/votes`, {
@@ -135,7 +150,7 @@ function VotingPanel() {
                 })}
               </div>
               <div className="flex justify-center mt-2">
-                <Button disabled={!currentlySelected} onClick={() => castVote(pos.id)}>Vote for {pos.name}</Button>
+                <Button disabled={!currentlySelected || !activeElectionId} onClick={() => castVote(pos.id)}>Vote for {pos.name}</Button>
               </div>
             </div>
           );

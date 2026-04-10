@@ -5,10 +5,12 @@ import Menu from '@/components/custom/Menu';
 
 interface Position {
   id?: string;
+  name?: string;
   positionId?: string;
   positionName?: string;
   position?: string;
   candidateCount?: number;
+  order?: number;
 }
 
 export default function AdminPositions() {
@@ -25,9 +27,8 @@ export default function AdminPositions() {
         throw new Error('Failed to fetch positions');
       }
 
-      const data = (await res.json()) as Position[];
-
-      setPositions(Array.isArray(data) ? data : []);
+      const payload = (await res.json()) as { success?: boolean; data?: Position[] };
+      setPositions(payload.success && Array.isArray(payload.data) ? payload.data : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -64,9 +65,9 @@ export default function AdminPositions() {
               className="p-2 border rounded"
             >
               <div className="flex justify-between">
-                <span>{p.positionName ?? p.position}</span>
+                <span>{p.name ?? p.positionName ?? p.position}</span>
                 <span className="text-sm text-gray-500">
-                  {p.candidateCount ?? 0} candidates
+                  order: {p.order ?? p.candidateCount ?? 0}
                 </span>
               </div>
             </div>

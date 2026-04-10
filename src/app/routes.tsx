@@ -13,6 +13,7 @@ import AdminPositions from "@/features/positions/AdminPositions";
 import CampaignPlatform from "@/features/campaigns/CampaignPlatform";
 import CandidatesManagement from "@/features/candidates/Candidatemanagement";
 import NotFound from "@/pages/NotFound";
+import { useAuth } from "@/hooks/useAuth";
 
 const SignInPage = () => (
   <div className='w-dvw h-dvh flex justify-center items-center'>
@@ -25,6 +26,12 @@ const SignUpPage = () => (
     <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/voter/dashboard" />
   </div>
 );
+const HomeRedirect = () => {
+  const { isSignedIn, user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!isSignedIn) return <Navigate to="/login" replace />;
+  return <Navigate to={user?.role === "admin" ? "/admin/dashboard" : "/voter/dashboard"} replace />;
+};
 
 const AppProtectedRoutes = () => {
   return (
@@ -53,7 +60,7 @@ const AppProtectedRoutes = () => {
         <Route path="/admin/face-verification" element={<FaceGate />} />
       </Route>
 
-      <Route path="/" element={<Navigate to="/voter/dashboard" replace />} />
+      <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

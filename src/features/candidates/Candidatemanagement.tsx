@@ -1,176 +1,134 @@
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { ThemeToggle } from "@/context/ThemeToggler"
-import { useEffect, useState } from "react"
-import { API_URL } from "../../config/api"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/context/ThemeToggler";
+import { useEffect, useMemo, useState } from "react";
+import { API_URL } from "../../config/api";
+
+interface Position {
+  id: string;
+  name: string;
+}
 
 interface Candidate {
-  id: number
-  name: string
-  position: string
-  party: string
-  votes: number
+  id: string;
+  name: string;
+  positionId: string;
+  party: string;
+}
+
+interface CandidatePayload {
+  id: string;
+  name: string;
+  positionId: string;
+  party?: string;
 }
 
 interface NewCandidate {
-  name: string
-  position: string
-  manifesto?: string
-  imageFile?: File
-  imagePreview?: string
+  name: string;
+  positionId: string;
+  party: string;
 }
 
 export default function CandidatesManagement() {
-  const [candidates, setCandidates] = useState<Candidate[]>([])
-  const [editing, setEditing] = useState<Candidate | null>(null)
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [editing, setEditing] = useState<Candidate | null>(null);
   const [newCand, setNewCand] = useState<NewCandidate>({
     name: "",
-    position: "",
-    manifesto: "",
-    imageFile: undefined,
-    imagePreview: "",
-  })
-  const [editImageFile, setEditImageFile] = useState<File | null>(null)
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+    positionId: "",
+    party: "",
+  });
 
   useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        const res = await fetch(`${API_URL}/candidates`, { credentials: "include" })
-        if (res.ok) {
-          const data = await res.json() as Array<{ id: number; name: string; position: string; manifesto?: string }>
-          const mapped: Candidate[] = data.map((c) => ({
-            id: c.id,
-            name: c.name,
-            position: c.position,
-            party: c.manifesto ?? "",
-            votes: 0,
-          }))
-          setCandidates(mapped)
-        }
-      } catch {
-        // ignore
+    const load = async () => {
+      const [posRes, candRes] = await Promise.all([
+        fetch(`${API_URL}/positions`, { credentials: "include" }),
+        fetch(`${API_URL}/candidates`, { credentials: "include" }),
+      ]);
+
+      if (posRes.ok) {
+        const posPayload = await posRes.json() as { success?: boolean; data?: Array<{ id?: string; name?: string }> };
+        const list = posPayload.success && Array.isArray(posPayload.data) ? posPayload.data : [];
+        setPositions(list.map((p) => ({ id: p.id ?? "", name: p.name ?? "Unnamed Position" })).filter((p) => p.id));
       }
-    }
-    fetchCandidates()
-  }, [])
 
-  const deleteCandidate = async (id: number) => {
-    await fetch(`/api/candidates/${id}`, { method: "DELETE", credentials: "include" })
-    setCandidates(prev => prev.filter(c => c.id !== id))
-  }
+      if (candRes.ok) {
+        const candPayload = await candRes.json() as { success?: boolean; data?: CandidatePayload[] };
+        const list = candPayload.success && Array.isArray(candPayload.data) ? candPayload.data : [];
+        setCandidates(list.map((c) => ({
+          id: c.id,
+          name: c.name,
+          positionId: c.positionId,
+          party: c.party ?? "",
+        })));
+      }
+    };
 
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    const CLOUD_NAME = (import.meta as { env?: Record<string, string> }).env?.VITE_CLOUDINARY_CLOUD_NAME || ""
-    const UPLOAD_PRESET = (import.meta as { env?: Record<string, string> }).env?.VITE_CLOUDINARY_UPLOAD_PRESET || ""
-    if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      throw new Error("Cloudinary config not set in frontend env")
-    }
-    const form = new FormData()
-    form.append("file", file)
-    form.append("upload_preset", UPLOAD_PRESET)
+    void load();
+  }, []);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
-      method: "POST",
-      body: form,
-    })
-    const data = await res.json() as { secure_url?: string }
-    if (res.ok && data.secure_url) {
-      return data.secure_url
-    }
-    throw new Error("Cloudinary upload failed")
-  }
-
-  const saveEditWithServer = async () => {
-    if (!editing) return
-    const payload: Record<string, string> = {
-      name: editing.name,
-      position: editing.position,
-      manifesto: editing.party
-    }
-    if (editImageFile) {
-      const url = await uploadToCloudinary(editImageFile)
-      payload.imageUrl = url
-    }
-
-    const res = await fetch(`/api/candidates/${editing.id}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    if (res.ok) {
-      setCandidates(prev => prev.map(c => (
-        c.id === editing.id ? { ...c, name: editing.name, position: editing.position, party: editing.party } : c
-      )))
-      setEditing(null)
-      setEditImageFile(null)
-      setEditImagePreview(null)
-    }
-  }
-
-  const onNewFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setNewCand(prev => ({ ...prev, imageFile: file }))
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = String(reader.result)
-      setNewCand(prev => ({ ...prev, imagePreview: dataUrl }))
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const onEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setEditImageFile(file)
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = String(reader.result)
-      setEditImagePreview(dataUrl)
-    }
-    reader.readAsDataURL(file)
-  }
+  const positionNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    positions.forEach((p) => {
+      map[p.id] = p.name;
+    });
+    return map;
+  }, [positions]);
 
   const createCandidate = async () => {
-    const payload: Record<string, string> = {
-      name: newCand.name,
-      position: newCand.position,
-      manifesto: newCand.manifesto ?? "",
-    }
-    if (newCand.imageFile) {
-      const url = await uploadToCloudinary(newCand.imageFile)
-      payload.imageUrl = url
-    }
+    if (!newCand.name || !newCand.positionId) return;
 
     const res = await fetch(`${API_URL}/candidates`, {
       method: "POST",
       credentials: "include",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    if (res.ok) {
-      const created = await res.json() as { id?: number; name?: string; position?: string; manifesto?: string } | Array<{ id: number; name: string; position: string; manifesto?: string }>
-      const c = Array.isArray(created) ? created[0] : created
-      if (c && c.id) {
-        setCandidates(prev => [
-          ...prev,
-          { id: c.id as number, name: c.name ?? "", position: c.position ?? "", party: c.manifesto ?? "", votes: 0 }
-        ])
-      }
-      setNewCand({ name: "", position: "", manifesto: "", imageFile: undefined, imagePreview: "" })
-    }
-  }
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newCand.name,
+        positionId: newCand.positionId,
+        party: newCand.party,
+      }),
+    });
 
-  const editCandidate = (cand: Candidate) => {
-    setEditing({ ...cand })
-    setEditImageFile(null)
-    setEditImagePreview(null)
-  }
+    if (!res.ok) return;
+
+    const payload = await res.json() as { success?: boolean; data?: CandidatePayload };
+    const c = payload.success ? payload.data : null;
+    if (!c?.id) return;
+
+    setCandidates((prev) => [
+      ...prev,
+      { id: c.id, name: c.name, positionId: c.positionId, party: c.party ?? "" },
+    ]);
+    setNewCand({ name: "", positionId: "", party: "" });
+  };
+
+  const deleteCandidate = async (id: string) => {
+    await fetch(`${API_URL}/candidates/${id}`, { method: "DELETE", credentials: "include" });
+    setCandidates((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const res = await fetch(`${API_URL}/candidates/${editing.id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editing.name,
+        positionId: editing.positionId,
+        party: editing.party,
+      }),
+    });
+    if (!res.ok) return;
+
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === editing.id ? editing : c))
+    );
+    setEditing(null);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -179,35 +137,30 @@ export default function CandidatesManagement() {
           <h2 className="text-lg font-bold">Create Candidate</h2>
           <ThemeToggle />
         </div>
-        <div className="grid md:grid-cols-2 gap-4 items-end">
+        <div className="grid md:grid-cols-3 gap-4 items-end">
           <Input placeholder="Name" value={newCand.name} onChange={(e) => setNewCand({ ...newCand, name: e.target.value })} />
-          <Input placeholder="Position" value={newCand.position} onChange={(e) => setNewCand({ ...newCand, position: e.target.value })} />
-          <Input placeholder="Manifesto" value={newCand.manifesto} onChange={(e) => setNewCand({ ...newCand, manifesto: e.target.value })} />
-          <div>
-            <input type="file" accept="image/*" onChange={onNewFileChange} />
-          </div>
+          <select className="h-10 rounded-md border px-3 bg-background" value={newCand.positionId} onChange={(e) => setNewCand({ ...newCand, positionId: e.target.value })}>
+            <option value="">Select Position</option>
+            {positions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <Input placeholder="Party" value={newCand.party} onChange={(e) => setNewCand({ ...newCand, party: e.target.value })} />
         </div>
-        {newCand.imagePreview && (
-          <div className="mt-2">
-            <img src={newCand.imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover' }} />
-          </div>
-        )}
         <div className="mt-3">
           <Button onClick={createCandidate}>Create Candidate</Button>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {candidates.map(candidate => (
+        {candidates.map((candidate) => (
           <Card key={candidate.id} className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
             <CardHeader className="flex justify-between">
               <CardTitle>{candidate.name}</CardTitle>
-              <Badge>{candidate.position}</Badge>
+              <Badge>{positionNameById[candidate.positionId] ?? candidate.positionId}</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-zinc-500">{candidate.party}</p>
+              <p className="text-sm text-zinc-500">{candidate.party || "No party"}</p>
               <div className="flex gap-3">
-                <Button size="sm" variant="secondary" onClick={() => editCandidate(candidate)}>Edit</Button>
+                <Button size="sm" variant="secondary" onClick={() => setEditing({ ...candidate })}>Edit</Button>
                 <Button size="sm" variant="destructive" onClick={() => deleteCandidate(candidate.id)}>Delete</Button>
               </div>
             </CardContent>
@@ -220,23 +173,19 @@ export default function CandidatesManagement() {
           <DialogHeader>
             <DialogTitle>Edit Candidate</DialogTitle>
           </DialogHeader>
-
           {editing && (
             <div className="space-y-4">
               <Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
-              <Input value={editing.position} onChange={(e) => setEditing({ ...editing, position: e.target.value })} />
+              <select className="h-10 rounded-md border px-3 bg-background" value={editing.positionId} onChange={(e) => setEditing({ ...editing, positionId: e.target.value })}>
+                <option value="">Select Position</option>
+                {positions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
               <Input value={editing.party} onChange={(e) => setEditing({ ...editing, party: e.target.value })} />
-              <div>
-                <input type="file" accept="image/*" onChange={onEditFileChange} />
-              </div>
-              {editImagePreview && (
-                <img src={editImagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover' }} />
-              )}
-              <Button onClick={saveEditWithServer} className="w-full">Save Changes</Button>
+              <Button onClick={saveEdit} className="w-full">Save Changes</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
