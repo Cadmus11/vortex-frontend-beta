@@ -16,7 +16,9 @@ export type AuthContextType = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   signup: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
+  isSyncing: boolean;
   isSignedIn: boolean;
   UserButton: typeof UserButton;
   SignIn: typeof SignIn;
@@ -46,8 +48,10 @@ export function useAuth() {
     // Clerk handles signup via SignUp component
   }, []);
 
-  const syncWithBackend = useCallback(async () => {
+  const syncWithBackend = useCallback(async (forceRefresh = false) => {
     if (!clerkUser || !clerkUser.id) return;
+
+    if (!forceRefresh && isSyncing) return;
 
     setIsSyncing(true);
     try {
@@ -68,13 +72,19 @@ export function useAuth() {
         if (userData.success && userData.user) {
           setBackendUser(userData.user);
         }
+      } else {
+        console.error('Failed to sync user:', userRes.status);
       }
     } catch (error) {
       console.error('Failed to sync with backend:', error);
     } finally {
       setIsSyncing(false);
     }
-  }, [clerkUser]);
+  }, [clerkUser, isSyncing]);
+
+  const refreshUser = useCallback(async () => {
+    await syncWithBackend(true);
+  }, [syncWithBackend]);
 
   useEffect(() => {
     if (clerkUser?.id) {
@@ -114,7 +124,9 @@ export function useAuth() {
     login,
     logout,
     signup,
+    refreshUser,
     isLoading: !isLoaded || isSyncing,
+    isSyncing,
     isSignedIn: isSignedIn || false,
     UserButton,
     SignIn,

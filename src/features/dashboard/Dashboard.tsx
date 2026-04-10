@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Activity, Calendar, Clock, Shield, Users, LayoutDashboardIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { API_URL } from "../../config/api"
+import { useUser } from "@clerk/clerk-react"
 
 interface Election {
   id: string
@@ -30,6 +31,7 @@ interface Stats {
 }
 
 export default function Dashboard() {
+  const { user: clerkUser } = useUser()
   const [elections, setElections] = useState<Election[]>([])
   const [stats, setStats] = useState<Stats>({
     totalElections: 0,
@@ -41,11 +43,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!clerkUser) return
+
+      const headers = {
+        'x-clerk-user-id': clerkUser.id,
+        'Content-Type': 'application/json',
+      }
+
       try {
         const [electionsRes, positionsRes, candidatesRes] = await Promise.all([
-          fetch(`${API_URL}/elections`),
-          fetch(`${API_URL}/positions`),
-          fetch(`${API_URL}/candidates`),
+          fetch(`${API_URL}/elections`, { headers }),
+          fetch(`${API_URL}/positions`, { headers }),
+          fetch(`${API_URL}/candidates`, { headers }),
         ])
 
         const electionsJson: ApiResponse<Election[]> = electionsRes.ok ? await electionsRes.json() : { success: false }
@@ -71,7 +80,7 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [])
+  }, [clerkUser])
 
   const nextElection = elections
     .filter((e) => new Date(e.startDate) > new Date())

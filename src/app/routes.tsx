@@ -56,6 +56,7 @@ const AppProtectedRoutes = () => {
         <Route path="/admin/election/:id" element={<AdminElection />} />
         <Route path="/admin/users" element={<UsersAdmin />} />
         <Route path="/admin/candidates" element={<CandidatesManagement />} />
+        <Route path="/admin/cast-vote" element={<VotingPanel />} />
         <Route path="/admin/campaigns" element={<CampaignPlatform />} />
         <Route path="/admin/face-verification" element={<FaceGate />} />
       </Route>

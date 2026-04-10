@@ -30,6 +30,7 @@ import {
 
 import { API_URL } from "../../config/api"
 import { useAuth } from "@/hooks/useAuth"
+import { useUser } from "@clerk/clerk-react"
 
 /* ---------------------- Schema ---------------------- */
 const electionSchema = z.object({
@@ -78,6 +79,7 @@ function FormField({ id, label, icon: Icon, error, children }: FormFieldProps) {
 /* ---------------------- Component ---------------------- */
 export default function ElectionSetup() {
   const { user } = useAuth()
+  const { user: clerkUser } = useUser()
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
 
@@ -113,7 +115,10 @@ export default function ElectionSetup() {
 
       const res = await fetch(`${API_URL}/elections`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+        },
         body: JSON.stringify({
           title: data.name,
           description: data.description,

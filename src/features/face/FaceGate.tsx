@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { cn } from "@/lib/utils";
-import { Camera, ScanLine } from "lucide-react";
+import { Camera, ScanLine, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api";
-import { useAuth } from "@/hooks/useAuth";
+import { useUser } from "@clerk/clerk-react";
 
 interface FaceGateProps {
   onVerified?: () => void;
@@ -28,7 +28,7 @@ interface EmbeddingResponse {
 }
 
 export default function FaceGate({ onVerified }: FaceGateProps) {
-  const { user } = useAuth();
+  const { user: clerkUser } = useUser();
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<FaceDetectorAPI | null>(null);
@@ -144,11 +144,14 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     }
 
     try {
-      const payload = { clerkId: user?.clerkId, faceEmbedding: dataURL };
+      const payload = { faceEmbedding: dataURL };
       const res = await fetch(`${API_URL}/face/register`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+        },
         body: JSON.stringify(payload),
       });
       if (res.ok) {
@@ -180,68 +183,184 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
   }, [lightingHint, verified]);
 
   return (
-    <Card className="bg-zinc-100 dark:bg-zinc-900 w-full max-w-md mx-auto h-dvh border-zinc-200 dark:border-zinc-800 backdrop-blur">
-      <CardHeader className="flex items-center justify-between p-4 text-lg">
-        <CardTitle className="flex items-center gap-2">
-          <Camera className="w-6 h-6" />
-          Identity Verification
-        </CardTitle>
+    <div className="min-h-screen w-full bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+      <div className="w-full max-w-4xl">
+        <Card className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-zinc-200 dark:border-zinc-800 shadow-2xl">
+          <CardHeader className="space-y-1 p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <Camera className="w-5 h-5 md:w-6 md:h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span>Identity Verification</span>
+              </CardTitle>
 
-        <div className="flex items-center gap-4 justify-center">
-          {verified && (
-            <Badge className="bg-emerald-600 text-white px">Verified</Badge>
-          )}
-          
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6 px-4 pb-6">
-        <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-zinc-300 dark:border-zinc-700">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-          />
-          {scanning && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <ScanLine className="w-12 h-12 animate-pulse text-emerald-500" />
+              <div className="flex items-center gap-2">
+                {verified ? (
+                  <Badge className="bg-emerald-600 text-white px-3 py-1 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="px-3 py-1 text-sm">
+                    Pending
+                  </Badge>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          </CardHeader>
 
-        <div className="text-center space-y-2">
-          {lightingHint && (
-            <div className="text-sm text-yellow-700 dark:text-yellow-300">
-              {lightingHint}
+          <CardContent className="p-4 md:p-6 lg:p-8">
+            <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
+              <div className="space-y-4">
+                <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[4/3] rounded-2xl overflow-hidden border-2 border-zinc-300 dark:border-zinc-700 bg-black shadow-inner">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {!streaming && (
+                    <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+                      <span className="text-zinc-400 text-sm">Starting camera...</span>
+                    </div>
+                  )}
+                  
+                  {!streaming && (
+                    <div className="absolute inset-0 bg-zinc-900/90 flex flex-col items-center justify-center gap-3">
+                      <AlertCircle className="w-8 h-8 text-yellow-500" />
+                      <span className="text-zinc-300 text-sm text-center px-4">Camera access denied. Please allow camera permissions.</span>
+                    </div>
+                  )}
+                  
+                  {scanning && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="relative">
+                          <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+                          <ScanLine className="w-16 h-16 text-emerald-400 animate-pulse relative z-10" />
+                        </div>
+                        <span className="text-white font-medium animate-pulse">Scanning...</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 border-2 border-emerald-400/50 rounded-full" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 border border-dashed border-emerald-400/30 rounded-full animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="text-center space-y-1">
+                  {lightingHint ? (
+                    <div className="flex items-center justify-center gap-2 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-lg">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{lightingHint}</span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      {verified ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">{lightingStatus}</span>
+                      ) : (
+                        lightingStatus
+                      )}
+                    </p>
+                  )}
+                </div>
+
+                {!verified && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      onClick={handleScan}
+                      disabled={!streaming || scanning}
+                      size="lg"
+                      className={cn(
+                        "w-full sm:w-auto min-w-[200px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 transition-all duration-200",
+                        scanning && "opacity-70"
+                      )}
+                    >
+                      {scanning ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <ScanLine className="w-4 h-4 mr-2" />
+                          Start Scan
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden lg:flex flex-col justify-center space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+                    Verification Tips
+                  </h3>
+                  <ul className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <li className="flex items-start gap-3">
+                      <div className="p-1 bg-emerald-100 dark:bg-emerald-900/30 rounded mt-0.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span>Ensure your face is clearly visible and centered in the frame</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="p-1 bg-emerald-100 dark:bg-emerald-900/30 rounded mt-0.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span>Use good lighting - avoid backlighting or shadows on your face</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="p-1 bg-emerald-100 dark:bg-emerald-900/30 rounded mt-0.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span>Remove glasses, hats, or face coverings if possible</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="p-1 bg-emerald-100 dark:bg-emerald-900/30 rounded mt-0.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span>Look directly at the camera and stay still during scanning</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {verified && embeddingId && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Verification Complete</span>
+                    </div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
+                      Your identity has been verified successfully.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          {!lightingHint && (
-            <div className="text-sm text-zinc-500">{lightingStatus}</div>
-          )}
-        </div>
 
-        {!verified && (
-          <div className="flex justify-center">
-            <Button
-              onClick={handleScan}
-              disabled={!streaming || scanning}
-              className={cn(
-                "bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2",
-              )}
-            >
-              {scanning ? "Processing..." : "Start Scan"}
-            </Button>
-          </div>
-        )}
+            {verified && (
+              <div className="mt-6 lg:hidden p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Verification Complete</span>
+                </div>
+                <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-1">
+                  Your identity has been verified successfully.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {embeddingId && (
-          <div className="text-center text-sm text-zinc-600">
-            Embedding stored: {embeddingId}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <canvas ref={captureCanvasRef} className="hidden" />
+      </div>
+    </div>
   );
 }

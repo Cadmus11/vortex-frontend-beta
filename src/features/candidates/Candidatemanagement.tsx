@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/context/ThemeToggler";
 import { useEffect, useMemo, useState } from "react";
 import { API_URL } from "../../config/api";
+import { useUser } from "@clerk/clerk-react";
 
 interface Position {
   id: string;
@@ -33,6 +34,7 @@ interface NewCandidate {
 }
 
 export default function CandidatesManagement() {
+  const { user: clerkUser } = useUser();
   const [positions, setPositions] = useState<Position[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [editing, setEditing] = useState<Candidate | null>(null);
@@ -44,9 +46,10 @@ export default function CandidatesManagement() {
 
   useEffect(() => {
     const load = async () => {
+      const headers = clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {};
       const [posRes, candRes] = await Promise.all([
-        fetch(`${API_URL}/positions`, { credentials: "include" }),
-        fetch(`${API_URL}/candidates`, { credentials: "include" }),
+        fetch(`${API_URL}/positions`, { credentials: "include", headers }),
+        fetch(`${API_URL}/candidates`, { credentials: "include", headers }),
       ]);
 
       if (posRes.ok) {
@@ -68,7 +71,7 @@ export default function CandidatesManagement() {
     };
 
     void load();
-  }, []);
+  }, [clerkUser?.id]);
 
   const positionNameById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -84,7 +87,10 @@ export default function CandidatesManagement() {
     const res = await fetch(`${API_URL}/candidates`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+      },
       body: JSON.stringify({
         name: newCand.name,
         positionId: newCand.positionId,
@@ -106,7 +112,11 @@ export default function CandidatesManagement() {
   };
 
   const deleteCandidate = async (id: string) => {
-    await fetch(`${API_URL}/candidates/${id}`, { method: "DELETE", credentials: "include" });
+    await fetch(`${API_URL}/candidates/${id}`, { 
+      method: "DELETE", 
+      credentials: "include",
+      headers: clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {},
+    });
     setCandidates((prev) => prev.filter((c) => c.id !== id));
   };
 
@@ -115,7 +125,10 @@ export default function CandidatesManagement() {
     const res = await fetch(`${API_URL}/candidates/${editing.id}`, {
       method: "PUT",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+      },
       body: JSON.stringify({
         name: editing.name,
         positionId: editing.positionId,

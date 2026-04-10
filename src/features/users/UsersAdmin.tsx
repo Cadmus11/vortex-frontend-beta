@@ -56,6 +56,7 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react"
+import { useUser } from "@clerk/clerk-react"
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -89,6 +90,7 @@ interface User {
 type ModalType = "create" | "edit" | "delete" | null
 
 export default function UsersAdmin() {
+  const { user: clerkUser } = useUser()
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -111,7 +113,8 @@ export default function UsersAdmin() {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`${API_URL}/users`, { credentials: "include" })
+      const headers = clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}
+      const res = await fetch(`${API_URL}/users`, { credentials: "include", headers })
       if (res.ok) {
         const data = await res.json()
         setUsers(data.data || [])
@@ -121,7 +124,7 @@ export default function UsersAdmin() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [clerkUser?.id])
 
   useEffect(() => {
     fetchUsers()
@@ -193,7 +196,10 @@ export default function UsersAdmin() {
       const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+        },
         body: JSON.stringify(data),
       })
 
@@ -219,7 +225,10 @@ export default function UsersAdmin() {
       const res = await fetch(`${API_URL}/users?id=${selectedUser.id}`, {
         method: "PUT",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+        },
         body: JSON.stringify(data),
       })
 
@@ -245,6 +254,7 @@ export default function UsersAdmin() {
       const res = await fetch(`${API_URL}/users?id=${selectedUser.id}`, {
         method: "DELETE",
         credentials: "include",
+        headers: clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {},
       })
 
       if (res.ok) {
