@@ -1,12 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import { cn } from "@/lib/utils";
-import { Camera, ScanLine, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Camera, ScanLine, CheckCircle, AlertCircle, Loader2, Shield, User, Mail, BadgeCheck, Check, Vote } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FaceGateProps {
   onVerified?: () => void;
@@ -27,19 +26,78 @@ interface EmbeddingResponse {
   embeddingId?: string;
 }
 
+interface ActiveElection {
+  id: string;
+  title: string;
+  status: string;
+}
+
+interface VoteCheckResponse {
+  success: boolean;
+  hasVoted: boolean;
+  voteId?: string;
+}
+
 export default function FaceGate({ onVerified }: FaceGateProps) {
-  const { user: clerkUser } = useUser();
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<FaceDetectorAPI | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [activeElection, setActiveElection] = useState<ActiveElection | null>(null);
   const [lightingHint, setLightingHint] = useState<string | null>(null);
   const [embeddingInfo, setEmbeddingInfo] = useState<{
     id?: string;
     ok?: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    if (user?.isVerified) {
+      setVerified(true);
+    }
+  }, [user?.isVerified]);
+
+  useEffect(() => {
+    const checkVoteStatus = async () => {
+      if (!user?.clerkId) return;
+      
+      try {
+        const electionsRes = await fetch(`${API_URL}/elections`, {
+          credentials: "include",
+          headers: { 'x-clerk-user-id': user.clerkId },
+        });
+        
+        if (electionsRes.ok) {
+          const data = await electionsRes.json();
+          const elections: ActiveElection[] = data?.data || [];
+          const active = elections.find((e) => e.status === 'active') || elections[0];
+          
+          if (active) {
+            setActiveElection(active);
+            
+            const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}&clerkId=${user.clerkId}`, {
+              credentials: "include",
+              headers: { 'x-clerk-user-id': user.clerkId },
+            });
+            
+            if (voteRes.ok) {
+              const voteData = await voteRes.json() as VoteCheckResponse;
+              if (voteData.hasVoted) {
+                setHasVoted(true);
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+    
+    checkVoteStatus();
+  }, [user?.clerkId]);
 
   const startCamera = async () => {
     try {
@@ -59,19 +117,21 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
   };
 
   useEffect(() => {
-    startCamera();
-    if (typeof window !== "undefined" && window.FaceDetector) {
-      try {
-        detectorRef.current = new window.FaceDetector({
-          fastMode: true,
-          maxDetectedFaces: 1,
-        });
-      } catch {
-        detectorRef.current = null;
+    if (!verified) {
+      startCamera();
+      if (typeof window !== "undefined" && window.FaceDetector) {
+        try {
+          detectorRef.current = new window.FaceDetector({
+            fastMode: true,
+            maxDetectedFaces: 1,
+          });
+        } catch {
+          detectorRef.current = null;
+        }
       }
     }
     return () => stopCamera();
-  }, []);
+  }, [verified]);
 
   const detectFaceInFrame = async (): Promise<boolean> => {
     try {
@@ -150,7 +210,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
         credentials: "include",
         headers: { 
           "Content-Type": "application/json",
-          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
+          ...(user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -174,6 +234,10 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
   };
 
   const embeddingId = embeddingInfo?.id;
+  const isAdmin = user?.role === 'admin';
+  const cardColor = isAdmin ? "from-blue-500/20 to-blue-600/20 border-blue-500/50" : "from-emerald-500/20 to-emerald-600/20 border-emerald-500/50";
+  const accentColor = isAdmin ? "text-blue-500" : "text-emerald-500";
+  const bgAccent = isAdmin ? "bg-blue-500" : "bg-emerald-500";
 
   const lightingStatus = useMemo(() => {
     if (lightingHint) return lightingHint;
@@ -181,6 +245,176 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       ? "Identity Confirmed"
       : "Position your face inside the frame";
   }, [lightingHint, verified]);
+
+  if (verified && !hasVoted) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+        <div className="relative">
+          <div className="absolute inset-0 animate-pulse">
+            <div className={cn("w-80 h-80 rounded-full bg-gradient-to-br opacity-20 blur-3xl", isAdmin ? "bg-blue-500" : "bg-emerald-500")} />
+          </div>
+          <div className="absolute -top-4 -left-4 w-8 h-8">
+            <div className={cn("absolute w-full h-full rounded-full animate-orbit", bgAccent, "opacity-20")} />
+            <div className={cn("absolute w-2 h-2 top-1 left-1 rounded-full animate-pulse", bgAccent)} />
+          </div>
+          <div className="absolute -top-4 -right-4 w-8 h-8">
+            <div className={cn("absolute w-full h-full rounded-full animate-orbit-delayed", bgAccent, "opacity-20")} />
+            <div className={cn("absolute w-2 h-2 top-1 left-1 rounded-full animate-pulse", bgAccent)} />
+          </div>
+          <div className="absolute -bottom-4 -left-4 w-8 h-8">
+            <div className={cn("absolute w-full h-full rounded-full animate-orbit-slow", bgAccent, "opacity-20")} />
+            <div className={cn("absolute w-2 h-2 top-1 left-1 rounded-full animate-pulse", bgAccent)} />
+          </div>
+          <div className="absolute -bottom-4 -right-4 w-8 h-8">
+            <div className={cn("absolute w-full h-full rounded-full animate-orbit-delayed-slow", bgAccent, "opacity-20")} />
+            <div className={cn("absolute w-2 h-2 top-1 left-1 rounded-full animate-pulse", bgAccent)} />
+          </div>
+
+          <Card className={cn("relative w-80 bg-gradient-to-br backdrop-blur-xl border-2 shadow-2xl overflow-hidden", cardColor)}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-50" />
+            
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-4 relative">
+                <div className={cn("w-24 h-24 rounded-full bg-gradient-to-br flex items-center justify-center shadow-lg", isAdmin ? "bg-blue-100 dark:bg-blue-900/30" : "bg-emerald-100 dark:bg-emerald-900/30")}>
+                  <User className={cn("w-12 h-12", accentColor)} />
+                </div>
+                <div className={cn("absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center shadow-md", bgAccent)}>
+                  <CheckCircle className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">
+                {user?.username || 'User'}
+              </CardTitle>
+              <p className="text-sm text-zinc-500">Identity Verified</p>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/50 dark:bg-zinc-800/50 rounded-lg p-3 text-left">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Mail className="w-4 h-4 text-zinc-400" />
+                    <span className="text-xs text-zinc-500">Email</span>
+                  </div>
+                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                    {user?.email || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-white/50 dark:bg-zinc-800/50 rounded-lg p-3 text-left">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="w-4 h-4 text-zinc-400" />
+                    <span className="text-xs text-zinc-500">Role</span>
+                  </div>
+                  <Badge className={cn(
+                    "text-xs font-medium capitalize",
+                    isAdmin ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                  )}>
+                    {user?.role || 'voter'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="bg-white/50 dark:bg-zinc-800/50 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <BadgeCheck className={cn("w-4 h-4", accentColor)} />
+                  <span className="text-xs text-zinc-500">Verification Status</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-2 h-2 rounded-full animate-pulse", bgAccent)} />
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    {user?.isVerified ? 'Face Verified' : 'Email Verified'}
+                  </span>
+                </div>
+              </div>
+
+              {activeElection && (
+                <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                  <p className="text-xs text-zinc-500 mb-2">Active Election</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                      {activeElection.title}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      Ready to Vote
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasVoted) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+        <div className="relative">
+          <div className="absolute inset-0 animate-pulse">
+            <div className="w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/10 to-purple-600/10 blur-3xl mx-auto" />
+          </div>
+
+          <Card className="relative w-96 bg-gradient-to-br backdrop-blur-xl border-2 border-purple-500/30 shadow-2xl overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500" />
+            
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-4">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg">
+                  <Vote className="w-12 h-12 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">
+                Vote Submitted!
+              </CardTitle>
+              <p className="text-sm text-zinc-500">Your vote has been recorded</p>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <span className="font-semibold text-purple-700 dark:text-purple-300">
+                    Successfully Voted
+                  </span>
+                </div>
+                {activeElection && (
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    for <span className="font-medium">{activeElection.title}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-white/50 dark:bg-zinc-800/50 rounded-lg p-3">
+                <p className="text-xs text-zinc-500 mb-2 text-center">
+                  Voter Information
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-zinc-500">Name</span>
+                    <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                      {user?.username || 'User'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-zinc-500">Status</span>
+                    <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-xs">
+                      Verified Voter
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center text-xs text-zinc-400">
+                You cannot vote again for this election.
+                <br />
+                Thank you for participating!
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
