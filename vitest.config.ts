@@ -13,10 +13,14 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'src/test/',
+        'e2e/',
         '**/*.config.*',
         '**/index.ts',
       ],
     },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    typecheck: {
+      tsconfig: './tsconfig.test.json',
+    },
   },
 })
