@@ -172,8 +172,7 @@ export default function AddCandidate() {
       return;
     }
 
-    const created = await res.json();
-    console.log('Candidate created:', created);
+    await res.json();
     alert('Candidate Added Successfully');
     
     setImagePreview(null);

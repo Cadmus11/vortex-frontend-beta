@@ -6,7 +6,7 @@ const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const App = () => {
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || "pk_test_dev_mode"}>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
       <AppCenter />
     </ClerkProvider>
   );
