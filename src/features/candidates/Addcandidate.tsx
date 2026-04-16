@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useAuth } from '@/hooks/useAuth';
 
-import Menu from '@/components/custom/Menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,15 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, UserPlus, Shield } from 'lucide-react';
-import { ThemeToggle } from '@/context/ThemeToggler';
+import { Upload, UserPlus, Shield, Loader2 } from 'lucide-react';
+
 import { API_URL } from '../../config/api';
 
 const candidateSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   position: z.string().min(1, 'Position is required'),
-  party: z.string().min(2, 'Party must be at least 2 characters'),
-  manifesto: z.string().min(10, 'Manifesto must be at least 10 characters'),
+  party: z.string().min(1, 'Party is required'),
+  manifesto: z.string().optional(),
   electionId: z.string().min(1, 'Election is required'),
 });
 
@@ -36,24 +36,34 @@ interface Position {
 }
 
 export default function AddCandidate() {
+  const { accessToken, isLoading: authLoading } = useAuth();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [elections, setElections] = useState<Election[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isLoadingElections, setIsLoadingElections] = useState(true);
   const [isLoadingPositions, setIsLoadingPositions] = useState(true);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
 
   useEffect(() => {
-    fetch(`${API_URL}/elections`, { credentials: "include" })
+    fetch(`${API_URL}/elections`, { credentials: "include", headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) {
-          setElections(data.map((e: { id: string; title?: string; name?: string }) => ({ 
+        if (data?.success && Array.isArray(data.data)) {
+          setElections(data.data.map((e: { id: string; title?: string; name?: string }) => ({ 
             id: e.id, 
             title: e.title ?? e.name ?? '' 
           })));
-        } else if (data.data && Array.isArray(data.data)) {
-          setElections(data.data.map((e: { id: string; title?: string; name?: string }) => ({ 
+        } else if (Array.isArray(data)) {
+          setElections(data.map((e: { id: string; title?: string; name?: string }) => ({ 
             id: e.id, 
             title: e.title ?? e.name ?? '' 
           })));
@@ -61,29 +71,29 @@ export default function AddCandidate() {
       })
       .catch(() => {})
       .finally(() => setIsLoadingElections(false));
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
-    fetch(`${API_URL}/positions`, { credentials: "include" })
+    fetch(`${API_URL}/positions`, { credentials: "include", headers: getAuthHeaders() })
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) {
-          setPositions(data.map((p: { positionId?: string; id?: string; positionName?: string; name?: string }) => ({ 
-            id: p.positionId ?? p.id ?? '', 
-            name: p.positionName ?? p.name ?? '' 
+        if (data?.success && Array.isArray(data.data)) {
+          setPositions(data.data.map((p: { id?: string; positionId?: string; name?: string; positionName?: string }) => ({ 
+            id: p.id ?? p.positionId ?? '', 
+            name: p.name ?? p.positionName ?? '' 
           })));
-        } else if (data.data && Array.isArray(data.data)) {
-          setPositions(data.data.map((p: { positionId?: string; id?: string; positionName?: string; name?: string }) => ({ 
-            id: p.positionId ?? p.id ?? '', 
-            name: p.positionName ?? p.name ?? '' 
+        } else if (Array.isArray(data)) {
+          setPositions(data.map((p: { id?: string; positionId?: string; name?: string; positionName?: string }) => ({ 
+            id: p.id ?? p.positionId ?? '', 
+            name: p.name ?? p.positionName ?? '' 
           })));
         }
       })
       .catch(() => {})
       .finally(() => setIsLoadingPositions(false));
-  }, []);
+  }, [accessToken]);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isSubmitting } } =
     useForm<CandidateFormValues>({
       resolver: zodResolver(candidateSchema),
       defaultValues: {
@@ -99,7 +109,17 @@ export default function AddCandidate() {
   const selectedElection = watch('electionId');
 
   const onSubmit = async (data: CandidateFormValues) => {
-    let finalImageUrl: string | null = imagePreview;
+    setSubmitStatus('idle');
+    setErrorMessage('');
+
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (!token) {
+      setSubmitStatus('error');
+      setErrorMessage('Please log in to add a candidate');
+      return;
+    }
+
+    let finalImageUrl: string | null = null;
 
     if (selectedImageFile) {
       const formData = new FormData();
@@ -109,43 +129,19 @@ export default function AddCandidate() {
       try {
         const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
         
-        if (!cloudName) {
-          console.error('Cloudinary cloud name not configured');
-          throw new Error('Cloudinary not configured');
-        }
+        if (cloudName) {
+          const cloudRes = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            { method: 'POST', body: formData }
+          );
 
-        const cloudRes = await fetch(
-          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          {
-            method: 'POST',
-            body: formData,
+          if (cloudRes.ok) {
+            const cloudData = await cloudRes.json() as { secure_url?: string; url?: string };
+            finalImageUrl = cloudData.secure_url || cloudData.url || null;
           }
-        );
-
-        if (!cloudRes.ok) {
-          const errorText = await cloudRes.text();
-          console.error('Cloudinary upload failed:', errorText);
-          throw new Error('Cloudinary upload failed');
-        }
-
-        const cloudData = await cloudRes.json() as { 
-          secure_url?: string; 
-          url?: string;
-          error?: { message?: string };
-        };
-        
-        if (cloudData.error?.message) {
-          throw new Error(cloudData.error.message);
-        }
-        
-        finalImageUrl = cloudData.secure_url || cloudData.url || null;
-        
-        if (!finalImageUrl) {
-          console.warn('No image URL in Cloudinary response:', cloudData);
         }
       } catch (err) {
-        console.error('Image upload failed:', err);
-        alert('Image upload failed. Candidate will be created without image.');
+        console.warn('Image upload failed:', err);
       }
     }
 
@@ -153,30 +149,29 @@ export default function AddCandidate() {
       name: data.name,
       position: data.position,
       party: data.party,
-      manifesto: data.manifesto,
+      manifesto: data.manifesto || '',
       electionId: data.electionId,
-      imageUrl: finalImageUrl ?? null,
+      imageUrl: finalImageUrl,
     };
 
     const res = await fetch(`${API_URL}/candidates`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      console.error('Failed to create candidate', errData);
-      alert(errData?.error || errData?.message || 'Failed to create candidate');
+      setSubmitStatus('error');
+      setErrorMessage(errData?.error || errData?.message || 'Failed to create candidate');
       return;
     }
 
-    await res.json();
-    alert('Candidate Added Successfully');
-    
+    setSubmitStatus('success');
     setImagePreview(null);
     setSelectedImageFile(null);
+    reset();
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,30 +185,46 @@ export default function AddCandidate() {
     reader.readAsDataURL(file);
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Shield className="h-6 w-6 text-white" />
+            <div className="p-2 bg-primary rounded-lg">
+              <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Add Candidate</h1>
               <p className="text-sm text-muted-foreground">Create a new election candidate</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary">Admin Panel</Badge>
-            <ThemeToggle />
-            <Menu />
-          </div>
+          <Badge variant="secondary">Admin Panel</Badge>
         </header>
 
-        <Card className="shadow-xl border-zinc-200 dark:border-zinc-800">
+        {submitStatus === 'error' && (
+          <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive">
+            {errorMessage}
+          </div>
+        )}
+
+        {submitStatus === 'success' && (
+          <div className="p-4 bg-success/10 border border-success/30 rounded-lg text-success">
+            Candidate added successfully!
+          </div>
+        )}
+
+        <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-blue-600" />
+              <UserPlus className="h-5 w-5 text-primary" />
               Candidate Information
             </CardTitle>
           </CardHeader>
@@ -227,7 +238,7 @@ export default function AddCandidate() {
                     placeholder="Enter candidate full name" 
                     {...register('name')} 
                   />
-                  {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -237,7 +248,7 @@ export default function AddCandidate() {
                     placeholder="e.g., Democratic Party" 
                     {...register('party')} 
                   />
-                  {errors.party && <p className="text-sm text-red-500">{errors.party.message}</p>}
+                  {errors.party && <p className="text-sm text-destructive">{errors.party.message}</p>}
                 </div>
               </div>
 
@@ -254,7 +265,7 @@ export default function AddCandidate() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.electionId && <p className="text-sm text-red-500">{errors.electionId.message}</p>}
+                  {errors.electionId && <p className="text-sm text-destructive">{errors.electionId.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -269,41 +280,56 @@ export default function AddCandidate() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.position && <p className="text-sm text-red-500">{errors.position.message}</p>}
+                  {errors.position && <p className="text-sm text-destructive">{errors.position.message}</p>}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="manifesto">Campaign Manifesto</Label>
+                <Label htmlFor="manifesto">Campaign Manifesto (Optional)</Label>
                 <Textarea 
                   id="manifesto" 
                   placeholder="State your vision and plans if elected..." 
-                  className="min-h-30"
+                  className="min-h-24"
                   {...register('manifesto')} 
                 />
-                {errors.manifesto && <p className="text-sm text-red-500">{errors.manifesto.message}</p>}
               </div>
 
               <div className="space-y-3">
-                <Label>Candidate Photo</Label>
+                <Label>Candidate Photo (Optional)</Label>
                 <div className="flex items-center gap-4">
-                  <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-700 transition">
+                  <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-md transition">
                     <Upload className="w-4 h-4" />
                     Upload Photo
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
                   {imagePreview && (
-                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-md border border-zinc-300 dark:border-zinc-700" />
+                    <div className="relative">
+                      <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-md border" />
+                      <button
+                        type="button"
+                        onClick={() => { setImagePreview(null); setSelectedImageFile(null); }}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white" 
+                className="w-full h-12" 
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Adding Candidate...' : 'Add Candidate'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adding Candidate...
+                  </>
+                ) : (
+                  'Add Candidate'
+                )}
               </Button>
             </form>
           </CardContent>

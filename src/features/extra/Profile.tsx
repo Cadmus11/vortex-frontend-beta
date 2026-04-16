@@ -71,7 +71,7 @@ function Profile() {
   }, [profile]);
 
   return (
-    <Card className="bg-zinc-100 dark:bg-zinc-900 w-full max-w-2xl mx-auto border-zinc-200 dark:border-zinc-800 backdrop-blur">
+    <Card className="bg-card w-full max-w-2xl mx-auto border backdrop-blur">
       <CardHeader className="flex items-center justify-between p-4 text-lg">
         <CardTitle className="flex items-center gap-2">Profile</CardTitle>
         <ThemeToggle />
@@ -91,12 +91,11 @@ function Profile() {
             <Button
               size="sm"
               onClick={() => setEditing((e) => !e)}
-              className={cn("bg-emerald-600 hover:bg-emerald-700 text-white")}
             >
               {editing ? "Done" : "Edit"}
             </Button>
           </div>
-          <div className="text-sm text-zinc-600 mb-2">
+          <div className="text-sm text-muted-foreground mb-2">
             {profile.email ?? ""}
           </div>
           {editing ? (
@@ -134,17 +133,16 @@ function Profile() {
               />
               <Button
                 onClick={saveProfile}
-                className={cn("bg-emerald-600 hover:bg-emerald-700 text-white")}
               >
                 Save Changes
               </Button>
             </div>
           ) : (
-            <div className="text-sm text-zinc-700 whitespace-pre-line">
+            <div className="text-sm text-foreground whitespace-pre-line">
               {profile.bio ?? ""}
             </div>
           )}
-          {saved && <div className="mt-2 text-sm text-green-700">{saved}</div>}
+          {saved && <div className="mt-2 text-sm text-success">{saved}</div>}
         </div>
       </CardContent>
     </Card>

@@ -14,7 +14,7 @@ const NotFound = () => {
   };
 
   return (
-    <div className="h-dvh w-dvw gap-4 p-8 bg-zinc-50 dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 flex justify-center items-center">
+    <div className="h-dvh w-dvw gap-4 p-8 bg-background text-foreground flex justify-center items-center">
       <div className="flex flex-col gap-4 justify-center items-center">
         <p className="text-5xl font-bold">
           404
@@ -27,7 +27,7 @@ const NotFound = () => {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 text-zinc-50 justify-center pt-4 w-full">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 w-full">
           <Button asChild size="lg" className="" >
             <Link to="/login">Go to Login</Link>
           </Button>

@@ -138,12 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRefreshIntervalId(intervalId);
       
       return () => {
-        if (intervalId) {
-          clearInterval(intervalId);
-        }
+        clearInterval(intervalId);
       };
     }
-  }, [user, accessToken, refreshToken, refreshIntervalId]);
+  }, [user, accessToken, refreshToken]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);

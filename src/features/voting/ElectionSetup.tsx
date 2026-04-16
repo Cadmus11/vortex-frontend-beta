@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import Menu from "@/components/custom/Menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ThemeToggle } from "@/context/ThemeToggler"
 
 import {
   AlertCircle,
@@ -77,9 +75,20 @@ function FormField({ id, label, icon: Icon, error, children }: FormFieldProps) {
 
 /* ---------------------- Component ---------------------- */
 export default function ElectionSetup() {
-  const { user, accessToken } = useAuth()
+  const { user, accessToken, isLoading } = useAuth()
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const {
     register,
@@ -101,16 +110,29 @@ export default function ElectionSetup() {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
+  };
+
+  const canSubmit = () => {
+    const token = accessToken || localStorage.getItem('accessToken');
+    return token && user?.id;
   };
 
   /* ---------------------- Submit ---------------------- */
   const onSubmit = async (data: ElectionFormValues) => {
     setSubmitStatus("idle")
     setErrorMessage("")
+
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (!token || !user?.id) {
+      setSubmitStatus("error")
+      setErrorMessage("Please log in to create an election")
+      return
+    }
 
     try {
       const startTime = getISODateTime(data.date, data.startTime)
@@ -121,15 +143,21 @@ export default function ElectionSetup() {
         return setErrorMessage("End time must be after start time")
       }
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
+
       const res = await fetch(`${API_URL}/elections`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        credentials: 'include',
+        headers,
         body: JSON.stringify({
           title: data.name,
           description: data.description,
           startDate: startTime,
           endDate: endTime,
-          createdBy: user?.id,
+          createdBy: user.id,
           status: 'draft',
         }),
       })
@@ -157,14 +185,14 @@ export default function ElectionSetup() {
 
   /* ---------------------- UI ---------------------- */
   return (
-    <div className="min-h-screen bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Header */}
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Shield className="h-6 w-6 text-white" />
+            <div className="p-2 bg-primary rounded-lg">
+              <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Election Setup</h1>
@@ -176,13 +204,11 @@ export default function ElectionSetup() {
 
           <div className="flex items-center gap-4">
             <Badge variant="secondary">Admin Panel</Badge>
-            <ThemeToggle />
-            <Menu />
           </div>
         </header>
 
         {/* Card */}
-        <Card className="shadow-xl border-zinc-200 dark:border-zinc-800">
+        <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">Create New Election</CardTitle>
             <CardDescription>
@@ -257,7 +283,7 @@ export default function ElectionSetup() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-12 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 h-12"
                 >
                   {isSubmitting ? (
                     <>

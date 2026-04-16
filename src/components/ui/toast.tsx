@@ -12,14 +12,14 @@ type ToastProps = {
 const colorFor = (v?: ToastProps["variant"]) => {
   switch (v) {
     case "success":
-      return "bg-green-600 text-white";
+      return "bg-success text-success-foreground";
     case "error":
-      return "bg-red-600 text-white";
+      return "bg-destructive text-white";
     case "warning":
-      return "bg-yellow-600 text-black";
+      return "bg-warning text-warning-foreground";
     case "info":
     default:
-      return "bg-blue-600 text-white";
+      return "bg-primary text-primary-foreground";
   }
 };
 
@@ -51,7 +51,7 @@ const Toast: React.FC<ToastProps> = ({
       <div className="flex items-center gap-2">
         {title && <strong>{title}</strong>}
       </div>
-      {message && <div className="text-sm">{message}</div>}
+      {message && <div className="text-sm opacity-90">{message}</div>}
     </div>
   );
 };

@@ -274,14 +274,14 @@ export default function UsersAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-background">
       {/* Notification Toast */}
       {notification && (
         <div
           className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-right ${
             notification.type === "success"
-              ? "bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400"
-              : "bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400"
+              ? "bg-success/10 border border-success/30 text-success"
+              : "bg-destructive/10 border border-destructive/30 text-destructive"
           }`}
         >
           {notification.type === "success" ? (
@@ -297,8 +297,8 @@ export default function UsersAdmin() {
         {/* Header */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Shield className="h-6 w-6 text-white" />
+            <div className="p-2 bg-primary rounded-lg">
+              <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">User Management</h1>
@@ -332,8 +332,8 @@ export default function UsersAdmin() {
                 <p className="text-sm text-muted-foreground">Total Users</p>
                 <p className="text-2xl font-bold">{users.length}</p>
               </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <Shield className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Shield className="h-6 w-6 text-primary" />
               </div>
             </CardContent>
           </Card>
@@ -345,8 +345,8 @@ export default function UsersAdmin() {
                   {users.filter((u) => u.role === "admin").length}
                 </p>
               </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                <UserCheck className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-accent/20 rounded-full">
+                <UserCheck className="h-6 w-6 text-accent" />
               </div>
             </CardContent>
           </Card>
@@ -358,8 +358,8 @@ export default function UsersAdmin() {
                   {users.filter((u) => u.role === "voter").length}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <UserX className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-secondary rounded-full">
+                <UserX className="h-6 w-6 text-secondary-foreground" />
               </div>
             </CardContent>
           </Card>
@@ -371,8 +371,8 @@ export default function UsersAdmin() {
                   {users.filter((u) => u.isVerified).length}
                 </p>
               </div>
-              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                <Check className="h-6 w-6 text-emerald-600" />
+              <div className="p-3 bg-success/10 rounded-full">
+                <Check className="h-6 w-6 text-success" />
               </div>
             </CardContent>
           </Card>
@@ -401,7 +401,7 @@ export default function UsersAdmin() {
                     className="pl-9 w-full sm:w-64"
                   />
                 </div>
-                <Button onClick={openCreateModal} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={openCreateModal}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add User
                 </Button>
@@ -451,7 +451,7 @@ export default function UsersAdmin() {
                           </TableCell>
                           <TableCell>
                             {user.isVerified ? (
-                              <div className="flex items-center gap-1 text-green-600">
+                              <div className="flex items-center gap-1 text-success">
                                 <Check className="h-4 w-4" />
                                 <span className="text-sm">Yes</span>
                               </div>
@@ -586,7 +586,7 @@ export default function UsersAdmin() {
               <Button type="button" variant="outline" onClick={closeModal}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Create User
               </Button>
@@ -657,7 +657,7 @@ export default function UsersAdmin() {
               <Button type="button" variant="outline" onClick={closeModal}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Save Changes
               </Button>
@@ -676,11 +676,11 @@ export default function UsersAdmin() {
             </DialogDescription>
           </DialogHeader>
           {selectedUser && (
-            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <p className="font-medium text-red-800 dark:text-red-400">
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+              <p className="font-medium text-destructive">
                 {selectedUser.email}
               </p>
-              <p className="text-sm text-red-600 dark:text-red-500">
+              <p className="text-sm text-destructive/80">
                 Role: {selectedUser.role}
               </p>
             </div>

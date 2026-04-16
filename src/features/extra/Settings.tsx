@@ -50,19 +50,19 @@ function Settings() {
   }, []);
 
   return (
-    <Card className="bg-zinc-100 dark:bg-zinc-900 w-full max-w-2xl mx-auto border-zinc-200 dark:border-zinc-800 backdrop-blur">
+    <Card className="bg-card w-full max-w-2xl mx-auto border backdrop-blur">
       <CardHeader className="flex items-center justify-between p-4 text-lg">
         <CardTitle className="flex items-center gap-2">Settings</CardTitle>
         <ThemeToggle />
       </CardHeader>
       <CardContent className="space-y-6 px-4 pb-6">
         <section>
-          <h4 className="text-sm font-semibold text-zinc-600 mb-2">
+          <h4 className="text-sm font-semibold text-muted-foreground mb-2">
             Personal Information
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1 text-zinc-700">
+              <label className="block text-sm mb-1 text-foreground">
                 Display Name
               </label>
               <Input
@@ -74,13 +74,13 @@ function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 text-zinc-700">Email</label>
+              <label className="block text-sm mb-1 text-foreground">Email</label>
               <Input value={profile.email ?? ""} readOnly />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm mb-1 text-zinc-700">
+              <label className="block text-sm mb-1 text-foreground">
                 Location
               </label>
               <Input
@@ -92,7 +92,7 @@ function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-1 text-zinc-700">
+              <label className="block text-sm mb-1 text-foreground">
                 Avatar Color
               </label>
               <Input
@@ -105,7 +105,7 @@ function Settings() {
             </div>
           </div>
           <div className="mt-4">
-            <label className="block text-sm mb-1 text-zinc-700">Bio</label>
+            <label className="block text-sm mb-1 text-foreground">Bio</label>
             <Textarea
               rows={3}
               value={profile.bio ?? ""}
@@ -115,27 +115,27 @@ function Settings() {
           </div>
         </section>
 
-        <section className="pt-2 border-t border-t-zinc-200 dark:border-t-zinc-700">
+        <section className="pt-2 border-t border-t-border">
           <div className="flex gap-4 flex-wrap items-center justify-between">
-            <div className="text-sm text-zinc-600">
+            <div className="text-sm text-muted-foreground">
               Tip: Updates are saved locally for this demo.
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={saveProfile}
-                className={cn("bg-emerald-600 hover:bg-emerald-700 text-white")}
+                className={cn("")}
               >
                 Save
               </Button>
               <Button
                 onClick={clearData}
-                className={cn("bg-red-600 hover:bg-red-700 text-white")}
+                variant="destructive"
               >
                 Clear Data
               </Button>
             </div>
           </div>
-          {saved && <div className="mt-2 text-sm text-green-700">{saved}</div>}
+          {saved && <div className="mt-2 text-sm text-success">{saved}</div>}
         </section>
       </CardContent>
     </Card>

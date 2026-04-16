@@ -1,4 +1,5 @@
 
+
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -110,12 +111,12 @@ export default function Dashboard() {
     <div className="space-y-6 p-2">
       <header className="flex justify-between items-center p-4">
         <h1 className="text-lg flex items-center gap-3">
-          <LayoutDashboardIcon className="h-8 w-8 text-blue-600" />
-          <span className="max-sm:hidden">Vortex Command Dashboard</span>
+          <LayoutDashboardIcon className="h-8 w-8 text-primary" />
+          <span className="max-sm:hidden">Dashboard</span>
         </h1>
 
         <div className="flex items-center gap-4">
-          <Badge className="bg-emerald-500 text-white">
+          <Badge className="bg-success text-success-foreground">
             Live
           </Badge>
         
@@ -132,42 +133,42 @@ export default function Dashboard() {
             <StatCard
               title="Total Elections"
               value={stats.totalElections}
-              icon={<Calendar className="w-5 h-5" />}
+              icon={<Calendar className="w-5 h-5 text-primary" />}
             />
             <StatCard
               title="Active Elections"
               value={stats.activeElections}
-              icon={<Activity className="w-5 h-5" />}
+              icon={<Activity className="w-5 h-5 text-primary" />}
             />
             <StatCard
               title="Total Positions"
               value={stats.totalPositions}
-              icon={<Users className="w-5 h-5" />}
+              icon={<Users className="w-5 h-5 text-primary" />}
             />
             <StatCard
               title="Total Candidates"
               value={stats.totalCandidates}
-              icon={<Shield className="w-5 h-5" />}
+              icon={<Shield className="w-5 h-5 text-primary" />}
             />
           </div>
 
-          <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <Card className="bg-secondary/50">
             <CardHeader>
               <CardTitle className="text-xl">Elections</CardTitle>
             </CardHeader>
             <CardContent>
               {elections.length === 0 ? (
-                <p className="text-zinc-500 text-center py-4">No elections found</p>
+                <p className="text-muted-foreground text-center py-4">No elections found</p>
               ) : (
                 <div className="space-y-3">
                   {elections.map((election) => (
                     <div
                       key={election.id}
-                      className="flex justify-between items-center p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800"
+                      className="flex justify-between items-center p-3 rounded-lg bg-background"
                     >
                       <div>
                         <p className="font-medium">{election.title}</p>
-                        <p className="text-sm text-zinc-500">
+                        <p className="text-sm text-muted-foreground">
                           {formatDate(election.startDate)} - {formatDate(election.endDate)}
                         </p>
                       </div>
@@ -182,13 +183,13 @@ export default function Dashboard() {
           </Card>
 
           {nextElection && (
-            <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+            <Card className="bg-secondary/50">
               <CardContent className="flex justify-between items-center py-4">
                 <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-blue-600" />
+                  <Clock className="w-5 h-5 text-primary" />
                   <span>Next Election: <strong>{nextElection.title}</strong></span>
                 </div>
-                <div className="text-lg font-bold text-blue-600">
+                <div className="text-lg font-bold text-primary">
                   {getCountdown()}
                 </div>
               </CardContent>
@@ -210,13 +211,13 @@ function StatCard({
   icon: React.ReactNode
 }) {
   return (
-    <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+    <Card className="bg-secondary/50">
       <CardContent className="flex justify-between items-center">
         <div>
-          <p className="text-sm text-zinc-500">{title}</p>
+          <p className="text-sm text-muted-foreground">{title}</p>
           <p className="text-2xl font-extrabold">{value}</p>
         </div>
-        <div className="p-3 bg-emerald-500/20 rounded-md dark:bg-zinc-800">
+        <div className="p-3 bg-primary/10 rounded-md">
           {icon}
         </div>
       </CardContent>

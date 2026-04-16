@@ -5,8 +5,6 @@ import {
   LogOut,
   Menu as MenuIcon,
   BadgeCheck,
-  RefreshCw,
-  Loader2,
   User,
 } from "lucide-react";
 import { useState } from "react";
@@ -109,8 +107,8 @@ const MenuSheet = () => {
                   className={`text-xs px-1.5 py-0.5 rounded-full font-medium capitalize
                     ${
                       isAdmin
-                        ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                        : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-accent/20 text-accent"
                     }`}
                 >
                   {user.role}

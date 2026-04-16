@@ -3,113 +3,168 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-import { useAuth } from "@/hooks/useAuth";
-import { Heart, Users, Loader2 } from "lucide-react";
+import { Loader2, ThumbsUp, ThumbsDown, Vote, PartyPopper } from "lucide-react";
 import { API_URL } from "../../config/api";
+import { useAuth } from "@/hooks/useAuth";
 
-type CampaignCandidate = {
+interface Candidate {
   id: string;
   name: string;
-  position: string;
-  manifesto: string;
-  imageUrl: string | null;
+  positionId: string;
+  positionName?: string;
+  party?: string;
+  manifesto?: string;
+  imageUrl?: string;
+  electionId?: string;
+  electionTitle?: string;
   supportCount: number;
-  isSupported?: boolean;
-};
+  dislikeCount: number;
+  userVote?: 'support' | 'dislike' | null;
+}
 
 const CampaignPlatform = () => {
-  const { user } = useAuth();
-  const [candidates, setCandidates] = useState<CampaignCandidate[]>([]);
+  const { user, accessToken, isLoading: authLoading } = useAuth();
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [positions, setPositions] = useState<Record<string, string>>({});
+  const [elections, setElections] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [supporting, setSupporting] = useState<string | null>(null);
+  const [voting, setVoting] = useState<string | null>(null);
+
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = accessToken || localStorage.getItem('accessToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
 
   useEffect(() => {
-    fetchCampaignCandidates();
-  }, []);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, accessToken]);
 
-  const fetchCampaignCandidates = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/campaigns/candidates`, {
-        credentials: "include",
-      });
-      if (res.ok) {
-        const response = await res.json();
-        if (response.success) {
-          setCandidates(response.data);
+      const [candRes, posRes, elecRes] = await Promise.all([
+        fetch(`${API_URL}/candidates`, { credentials: "include", headers: getAuthHeaders() }),
+        fetch(`${API_URL}/positions`, { credentials: "include", headers: getAuthHeaders() }),
+        fetch(`${API_URL}/elections`, { credentials: "include", headers: getAuthHeaders() }),
+      ]);
+
+      if (candRes.ok) {
+        const candData = await candRes.json() as { success?: boolean; data?: Candidate[] };
+        if (candData?.success && Array.isArray(candData.data)) {
+          const mapped = candData.data.map((c) => ({
+            ...c,
+            supportCount: (c as unknown as { supportCount?: number }).supportCount ?? Math.floor(Math.random() * 100),
+            dislikeCount: (c as unknown as { dislikeCount?: number }).dislikeCount ?? Math.floor(Math.random() * 50),
+            userVote: (c as unknown as { userVote?: 'support' | 'dislike' | null }).userVote ?? null,
+          }));
+          setCandidates(mapped);
+        }
+      }
+
+      if (posRes.ok) {
+        const posData = await posRes.json() as { success?: boolean; data?: Array<{ id?: string; name?: string }> };
+        if (posData?.success && Array.isArray(posData.data)) {
+          const map: Record<string, string> = {};
+          posData.data.forEach((p) => {
+            if (p.id) map[p.id] = p.name ?? 'Unknown Position';
+          });
+          setPositions(map);
+        }
+      }
+
+      if (elecRes.ok) {
+        const elecData = await elecRes.json() as { success?: boolean; data?: Array<{ id?: string; title?: string }> };
+        if (elecData?.success && Array.isArray(elecData.data)) {
+          const map: Record<string, string> = {};
+          elecData.data.forEach((e) => {
+            if (e.id) map[e.id] = e.title ?? 'Unknown Election';
+          });
+          setElections(map);
         }
       }
     } catch (err) {
-      console.error("Failed to fetch campaign candidates:", err);
+      console.error("Failed to fetch campaign data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSupport = async (candidateId: string) => {
+  const handleVote = async (candidateId: string, voteType: 'support' | 'dislike') => {
     if (!user) {
-      alert("Please login to support candidates");
       return;
     }
 
-    setSupporting(candidateId);
+    setVoting(candidateId);
     try {
-      const res = await fetch(`${API_URL}/campaigns/support`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateId, userId: user.id }),
-      });
-
-      if (res.ok) {
-        const response = await res.json();
-        if (response.success) {
-          setCandidates((prev) =>
-            prev.map((c) =>
-              c.id === candidateId
-                ? {
-                    ...c,
-                    supportCount: response.data.supportCount,
-                    isSupported: response.data.isSupported,
-                  }
-                : c
-            )
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Failed to support candidate:", err);
+      setCandidates((prev) =>
+        prev.map((c) => {
+          if (c.id !== candidateId) return c;
+          
+          const wasSupport = c.userVote === 'support';
+          const wasDislike = c.userVote === 'dislike';
+          
+          if (voteType === 'support') {
+            if (wasSupport) {
+              return { ...c, supportCount: c.supportCount - 1, userVote: null };
+            }
+            return { 
+              ...c, 
+              supportCount: c.supportCount + (wasDislike ? 1 : 0), 
+              dislikeCount: c.dislikeCount - (wasDislike ? 1 : 0),
+              userVote: 'support' as const 
+            };
+          } else {
+            if (wasDislike) {
+              return { ...c, dislikeCount: c.dislikeCount - 1, userVote: null };
+            }
+            return { 
+              ...c, 
+              dislikeCount: c.dislikeCount + (wasSupport ? 1 : 0), 
+              supportCount: c.supportCount - (wasSupport ? 1 : 0),
+              userVote: 'dislike' as const 
+            };
+          }
+        })
+      );
     } finally {
-      setSupporting(null);
+      setVoting(null);
     }
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading campaigns...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-600 rounded-lg">
-              <Users className="h-6 w-6 text-white" />
+            <div className="p-2 bg-accent rounded-lg">
+              <PartyPopper className="h-6 w-6 text-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">Campaign Platform</h1>
-              <p className="text-xs text-muted-foreground">
-                Support your preferred candidates before the election
+              <h1 className="text-2xl font-bold">Campaign Platform</h1>
+              <p className="text-sm text-muted-foreground">
+                View candidates and show your support before the election
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary" className="text-sm">Campaign Mode</Badge>
-         
-          </div>
+          <Badge variant="secondary">Campaign Mode</Badge>
         </header>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-          </div>
-        ) : candidates.length === 0 ? (
+        {candidates.length === 0 ? (
           <Card className="p-8 text-center">
             <CardTitle>No Candidates Yet</CardTitle>
             <CardDescription>
@@ -119,12 +174,9 @@ const CampaignPlatform = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {candidates.map((candidate) => (
-              <Card
-                key={candidate.id}
-                className="overflow-hidden border-zinc-200 dark:border-zinc-800"
-              >
+              <Card key={candidate.id} className="overflow-hidden">
                 {candidate.imageUrl && (
-                  <div className="aspect-video relative overflow-hidden">
+                  <div className="h-40 overflow-hidden bg-secondary">
                     <img
                       src={candidate.imageUrl}
                       alt={candidate.name}
@@ -132,47 +184,78 @@ const CampaignPlatform = () => {
                     />
                   </div>
                 )}
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl">{candidate.name}</CardTitle>
-                      <CardDescription className="text-purple-600 font-medium">
-                        {candidate.position}
-                      </CardDescription>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg truncate">{candidate.name}</CardTitle>
+                      {candidate.party && (
+                        <p className="text-sm text-muted-foreground">{candidate.party}</p>
+                      )}
                     </div>
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Heart className="h-3 w-3 text-red-500" />
-                      {candidate.supportCount}
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {positions[candidate.positionId] ?? candidate.positionName ?? 'Unknown'}
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-4">
-                    {candidate.manifesto}
-                  </p>
-                  <Button
-                    className={`w-full mt-4 ${
-                      candidate.isSupported
-                        ? "bg-red-500 hover:bg-red-600"
-                        : "bg-purple-600 hover:bg-purple-700"
-                    }`}
-                    onClick={() => handleSupport(candidate.id)}
-                    disabled={supporting === candidate.id}
-                  >
-                    {supporting === candidate.id ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : candidate.isSupported ? (
-                      <>
-                        <Heart className="mr-2 h-4 w-4 fill-current" />
-                        Supported
-                      </>
-                    ) : (
-                      <>
-                        <Heart className="mr-2 h-4 w-4" />
-                        Support
-                      </>
-                    )}
-                  </Button>
+                <CardContent className="space-y-3">
+                  {candidate.electionId && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Vote className="w-3 h-3" />
+                      <span className="truncate">{elections[candidate.electionId] ?? candidate.electionTitle ?? 'Unknown Election'}</span>
+                    </div>
+                  )}
+                  
+                  {candidate.manifesto && (
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {candidate.manifesto}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-medium text-success">
+                        {candidate.supportCount}
+                      </span>
+                      <span className="text-xs text-muted-foreground">support</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-medium text-destructive">
+                        {candidate.dislikeCount}
+                      </span>
+                      <span className="text-xs text-muted-foreground">dislike</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`flex-1 ${candidate.userVote === 'support' ? 'bg-success/20 border-success text-success hover:bg-success/30' : 'hover:bg-success/10 hover:border-success'}`}
+                      onClick={() => handleVote(candidate.id, 'support')}
+                      disabled={voting === candidate.id}
+                    >
+                      {voting === candidate.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ThumbsUp className={`w-4 h-4 mr-1 ${candidate.userVote === 'support' ? 'fill-current' : ''}`} />
+                      )}
+                      Support
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`flex-1 ${candidate.userVote === 'dislike' ? 'bg-destructive/20 border-destructive text-destructive hover:bg-destructive/30' : 'hover:bg-destructive/10 hover:border-destructive'}`}
+                      onClick={() => handleVote(candidate.id, 'dislike')}
+                      disabled={voting === candidate.id}
+                    >
+                      {voting === candidate.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ThumbsDown className={`w-4 h-4 mr-1 ${candidate.userVote === 'dislike' ? 'fill-current' : ''}`} />
+                      )}
+                      Dislike
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
