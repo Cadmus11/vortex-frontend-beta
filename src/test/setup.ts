@@ -3,19 +3,15 @@ import { vi } from 'vitest'
 
 global.fetch = global.fetch || vi.fn()
 
-vi.mock('@clerk/clerk-react', () => ({
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
-  useUser: () => ({
-    isSignedIn: false,
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
     user: null,
-    isLoaded: true,
+    accessToken: null,
+    isLoading: false,
+    isAuthenticated: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    refreshToken: vi.fn(),
   }),
-  useClerk: () => ({
-    signOut: vi.fn(),
-  }),
-  UserButton: () => null,
-  SignIn: () => null,
-  SignUp: () => null,
-  RedirectToSignIn: () => null,
-  RedirectToSignUp: () => null,
 }))

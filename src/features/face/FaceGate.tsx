@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Camera, ScanLine, CheckCircle, AlertCircle, Loader2, Shield, User, Mail, BadgeCheck, Check, Vote } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 
 interface FaceGateProps {
   onVerified?: () => void;
@@ -39,7 +39,7 @@ interface VoteCheckResponse {
 }
 
 export default function FaceGate({ onVerified }: FaceGateProps) {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<FaceDetectorAPI | null>(null);
@@ -54,6 +54,16 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     ok?: boolean;
   } | null>(null);
 
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    return headers;
+  };
+
   useEffect(() => {
     if (user?.isVerified) {
       setVerified(true);
@@ -62,12 +72,12 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
 
   useEffect(() => {
     const checkVoteStatus = async () => {
-      if (!user?.clerkId) return;
+      if (!user?.id) return;
       
       try {
         const electionsRes = await fetch(`${API_URL}/elections`, {
           credentials: "include",
-          headers: { 'x-clerk-user-id': user.clerkId },
+          headers: getAuthHeaders(),
         });
         
         if (electionsRes.ok) {
@@ -78,9 +88,9 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
           if (active) {
             setActiveElection(active);
             
-            const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}&clerkId=${user.clerkId}`, {
+            const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}`, {
               credentials: "include",
-              headers: { 'x-clerk-user-id': user.clerkId },
+              headers: getAuthHeaders(),
             });
             
             if (voteRes.ok) {
@@ -97,7 +107,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     };
     
     checkVoteStatus();
-  }, [user?.clerkId]);
+  }, [user?.id, accessToken]);
 
   const startCamera = async () => {
     try {
@@ -208,10 +218,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       const res = await fetch(`${API_URL}/face/register`, {
         method: "POST",
         credentials: "include",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
       if (res.ok) {

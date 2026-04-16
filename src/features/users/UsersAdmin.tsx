@@ -41,6 +41,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { ThemeToggle } from "@/context/ThemeToggler"
 import { API_URL } from "../../config/api"
+import { useAuth } from "@/context/AuthContext"
 import {
   AlertCircle,
   Check,
@@ -56,7 +57,6 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react"
-import { useUser } from "@clerk/clerk-react"
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -77,7 +77,6 @@ type UpdateFormValues = z.infer<typeof updateUserSchema>
 
 interface User {
   id: string
-  clerkId: string
   email: string
   username: string
   role: "admin" | "voter"
@@ -90,7 +89,7 @@ interface User {
 type ModalType = "create" | "edit" | "delete" | null
 
 export default function UsersAdmin() {
-  const { user: clerkUser } = useUser()
+  const { accessToken } = useAuth()
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -105,6 +104,16 @@ export default function UsersAdmin() {
 
   const itemsPerPage = 10
 
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    return headers;
+  };
+
   const showNotification = (type: "success" | "error", message: string) => {
     setNotification({ type, message })
     setTimeout(() => setNotification(null), 3000)
@@ -113,11 +122,7 @@ export default function UsersAdmin() {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
     try {
-      const headers: Record<string, string> = {};
-      if (clerkUser?.id) {
-        headers['x-clerk-user-id'] = clerkUser.id;
-      }
-      const res = await fetch(`${API_URL}/users`, { credentials: "include", headers })
+      const res = await fetch(`${API_URL}/users`, { credentials: "include", headers: getAuthHeaders() })
       if (res.ok) {
         const data = await res.json()
         setUsers(data.data || [])
@@ -127,7 +132,7 @@ export default function UsersAdmin() {
     } finally {
       setIsLoading(false)
     }
-  }, [clerkUser?.id])
+  }, [accessToken])
 
   useEffect(() => {
     fetchUsers()
@@ -199,10 +204,7 @@ export default function UsersAdmin() {
       const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         credentials: "include",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       })
 
@@ -228,10 +230,7 @@ export default function UsersAdmin() {
       const res = await fetch(`${API_URL}/users?id=${selectedUser.id}`, {
         method: "PUT",
         credentials: "include",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       })
 
@@ -257,7 +256,7 @@ export default function UsersAdmin() {
       const res = await fetch(`${API_URL}/users?id=${selectedUser.id}`, {
         method: "DELETE",
         credentials: "include",
-        headers: clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {},
+        headers: getAuthHeaders(),
       })
 
       if (res.ok) {

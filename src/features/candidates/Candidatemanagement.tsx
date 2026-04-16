@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/context/ThemeToggler";
 import { useEffect, useMemo, useState } from "react";
 import { API_URL } from "../../config/api";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface Position {
   id: string;
@@ -34,7 +34,7 @@ interface NewCandidate {
 }
 
 export default function CandidatesManagement() {
-  const { user: clerkUser } = useUser();
+  const { accessToken } = useAuth();
   const [positions, setPositions] = useState<Position[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [editing, setEditing] = useState<Candidate | null>(null);
@@ -44,15 +44,21 @@ export default function CandidatesManagement() {
     party: "",
   });
 
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    return headers;
+  };
+
   useEffect(() => {
     const load = async () => {
-      const headers: Record<string, string> = {};
-      if (clerkUser?.id) {
-        headers['x-clerk-user-id'] = clerkUser.id;
-      }
       const [posRes, candRes] = await Promise.all([
-        fetch(`${API_URL}/positions`, { credentials: "include", headers }),
-        fetch(`${API_URL}/candidates`, { credentials: "include", headers }),
+        fetch(`${API_URL}/positions`, { credentials: "include", headers: getAuthHeaders() }),
+        fetch(`${API_URL}/candidates`, { credentials: "include", headers: getAuthHeaders() }),
       ]);
 
       if (posRes.ok) {
@@ -74,7 +80,7 @@ export default function CandidatesManagement() {
     };
 
     void load();
-  }, [clerkUser?.id]);
+  }, [accessToken]);
 
   const positionNameById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -90,10 +96,7 @@ export default function CandidatesManagement() {
     const res = await fetch(`${API_URL}/candidates`, {
       method: "POST",
       credentials: "include",
-      headers: { 
-        "Content-Type": "application/json",
-        ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         name: newCand.name,
         positionId: newCand.positionId,
@@ -118,7 +121,7 @@ export default function CandidatesManagement() {
     await fetch(`${API_URL}/candidates/${id}`, { 
       method: "DELETE", 
       credentials: "include",
-      headers: clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {},
+      headers: getAuthHeaders(),
     });
     setCandidates((prev) => prev.filter((c) => c.id !== id));
   };
@@ -128,10 +131,7 @@ export default function CandidatesManagement() {
     const res = await fetch(`${API_URL}/candidates/${editing.id}`, {
       method: "PUT",
       credentials: "include",
-      headers: { 
-        "Content-Type": "application/json",
-        ...(clerkUser?.id ? { 'x-clerk-user-id': clerkUser.id } : {}),
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         name: editing.name,
         positionId: editing.positionId,

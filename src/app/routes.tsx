@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from "react-router";
-import { SignIn, SignUp } from "@clerk/clerk-react";
 
 import Dashboard from "@/features/dashboard/Dashboard";
 import FaceGate from "@/features/face/FaceGate";
@@ -13,33 +12,22 @@ import AdminPositions from "@/features/positions/AdminPositions";
 import CampaignPlatform from "@/features/campaigns/CampaignPlatform";
 import CandidatesManagement from "@/features/candidates/Candidatemanagement";
 import NotFound from "@/pages/NotFound";
-import { useAuth } from "@/hooks/useAuth";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import { useAuth } from "@/context/AuthContext";
 
-const SignInPage = () => (
-  <div className='w-dvw h-dvh flex justify-center items-center'>
-    <SignIn routing="path" path="/login" signUpUrl="/register" afterSignInUrl="/voter/dashboard" />
-  </div>
-);
-
-const SignUpPage = () => (
-  <div className='w-dvw h-dvh flex justify-center items-center'>
-    <SignUp routing="path" path="/register" signInUrl="/login" afterSignUpUrl="/voter/dashboard" />
-  </div>
-);
 const HomeRedirect = () => {
-  const { isSignedIn, user, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   if (isLoading) return null;
-  if (!isSignedIn) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <Navigate to={user?.role === "admin" ? "/admin/dashboard" : "/voter/dashboard"} replace />;
 };
 
 const AppProtectedRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={<SignInPage />} />
-      <Route path="/login/:path" element={<SignInPage />} />
-      <Route path="/register" element={<SignUpPage />} />
-      <Route path="/register/:path" element={<SignUpPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<ProtectedRoute roles={["voter"]} />}>
         <Route path="/voter/dashboard" element={<Dashboard />} />

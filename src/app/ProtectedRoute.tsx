@@ -1,8 +1,8 @@
 import { Outlet, Navigate, useLocation } from "react-router"
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 
 const ProtectedRoute = ({ roles }: { roles?: Array<"admin" | "voter"> }) => {
-  const { user, isLoading, isSignedIn } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -13,7 +13,7 @@ const ProtectedRoute = ({ roles }: { roles?: Array<"admin" | "voter"> }) => {
     );
   }
 
-  if (!isSignedIn) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Check, Vote, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import Toast from "@/components/ui/toast";
 import { API_URL } from "../../config/api";
 
@@ -33,7 +33,6 @@ interface PositionResponse {
 }
 
 interface VotePayload {
-  clerkId?: string;
   electionId: string;
   positionId: string;
   candidateId: string;
@@ -46,7 +45,7 @@ interface ActiveElection {
 }
 
 function VotingPanel() {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const [activeElectionId, setActiveElectionId] = useState<string | null>(null);
   const [activeElection, setActiveElection] = useState<ActiveElection | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -56,13 +55,23 @@ function VotingPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ open: boolean; title?: string; message?: string; variant?: 'success'|'info'|'warning'|'error' }>({ open: false });
 
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    return headers;
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const electionsRes = await fetch(`${API_URL}/elections`, {
           credentials: 'include',
-          headers: user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {},
+          headers: getAuthHeaders(),
         });
         if (electionsRes.ok && mounted) {
           const electionsPayload = await electionsRes.json();
@@ -72,9 +81,9 @@ function VotingPanel() {
             setActiveElectionId(active.id);
             setActiveElection(active);
             
-            const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}&clerkId=${user?.clerkId}`, {
+            const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}`, {
               credentials: 'include',
-              headers: user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {},
+              headers: getAuthHeaders(),
             });
             if (voteRes.ok && mounted) {
               const voteData = await voteRes.json();
@@ -87,7 +96,7 @@ function VotingPanel() {
         
         const resPos = await fetch(`${API_URL}/positions`, {
           credentials: 'include',
-          headers: user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {},
+          headers: getAuthHeaders(),
         });
         if (resPos.ok) {
           const posRes = await resPos.json();
@@ -100,7 +109,7 @@ function VotingPanel() {
           setPositions(positionsList);
           const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, {
             credentials: 'include',
-            headers: user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {},
+            headers: getAuthHeaders(),
           }).then(async r => {
             if (!r.ok) return [];
             const data = await r.json();
@@ -120,7 +129,7 @@ function VotingPanel() {
       }
     })();
     return () => { mounted = false; };
-  }, [user?.clerkId]);
+  }, [accessToken]);
 
   const selectCandidate = (posId: string, candId: string) => {
     setSelected(prev => ({ ...prev, [posId]: candId }));
@@ -128,9 +137,8 @@ function VotingPanel() {
 
   const castVote = async (posId: string) => {
     const candidateId = selected[posId];
-    if (!candidateId || !activeElectionId || !user?.clerkId) return;
+    if (!candidateId || !activeElectionId || !user) return;
     const payload: VotePayload = {
-      clerkId: user.clerkId,
       electionId: activeElectionId,
       positionId: posId,
       candidateId,
@@ -139,19 +147,16 @@ function VotingPanel() {
       const res = await fetch(`${API_URL}/votes`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(user?.clerkId ? { 'x-clerk-user-id': user.clerkId } : {}),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
       if (res.ok) {
         setSelected(prev => ({ ...prev, [posId]: null }));
         setToast({ open: true, title: 'Vote Cast', message: 'Your vote has been recorded.', variant: 'success' });
         
-        const voteRes = await fetch(`${API_URL}/votes/check?electionId=${activeElectionId}&clerkId=${user.clerkId}`, {
+        const voteRes = await fetch(`${API_URL}/votes/check?electionId=${activeElectionId}`, {
           credentials: 'include',
-          headers: { 'x-clerk-user-id': user.clerkId },
+          headers: getAuthHeaders(),
         });
         if (voteRes.ok) {
           const voteData = await voteRes.json();
