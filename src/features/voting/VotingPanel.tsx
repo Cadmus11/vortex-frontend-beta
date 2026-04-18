@@ -255,7 +255,6 @@ function VotingPanel() {
       if (verifyRes.ok) {
         const verifyData = await verifyRes.json();
         if (verifyData.verified) {
-          setFaceVerified(true);
           setFaceSuccess(true);
           setTimeout(() => {
             setFaceModalOpen(false);
