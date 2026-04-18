@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { Activity, Calendar, Clock, Shield, Users, LayoutDashboardIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { API_URL } from "../../config/api"
 import { useAuth } from "@/context/AuthContext"
 
@@ -41,7 +41,7 @@ export default function Dashboard() {
   })
   const [loading, setLoading] = useState(true)
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -49,7 +49,7 @@ export default function Dashboard() {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     return headers;
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +83,7 @@ export default function Dashboard() {
     }
 
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken])
 
   const nextElection = elections

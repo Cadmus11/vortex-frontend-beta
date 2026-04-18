@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/context/ThemeToggler";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { API_URL } from "../../config/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -44,7 +44,7 @@ export default function CandidatesManagement() {
     party: "",
   });
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -52,7 +52,7 @@ export default function CandidatesManagement() {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     return headers;
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     const load = async () => {
@@ -80,6 +80,7 @@ export default function CandidatesManagement() {
     };
 
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   const positionNameById = useMemo(() => {

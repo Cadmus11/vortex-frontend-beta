@@ -1,11 +1,11 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
-import { Check, Vote, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Check, Vote, Loader2, Camera, ScanLine, AlertCircle } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Toast from "@/components/ui/toast";
 import { API_URL } from "../../config/api";
@@ -38,24 +38,47 @@ interface VotePayload {
   candidateId: string;
 }
 
-interface ActiveElection {
+interface Election {
   id: string;
   title: string;
   status: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+interface FaceDetectorAPI {
+  detect: (source: HTMLVideoElement) => Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
+}
+
+declare global {
+  interface Window {
+    FaceDetector: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorAPI;
+  }
 }
 
 function VotingPanel() {
   const { user, accessToken } = useAuth();
-  const [activeElectionId, setActiveElectionId] = useState<string | null>(null);
-  const [activeElection, setActiveElection] = useState<ActiveElection | null>(null);
+  const [activeElection, setActiveElection] = useState<Election | null>(null);
+  const [nextElection, setNextElection] = useState<Election | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [candsByPos, setCandsByPos] = useState<Record<string, Candidate[]>>({});
   const [selected, setSelected] = useState<Record<string, string | null>>({});
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ open: boolean; title?: string; message?: string; variant?: 'success'|'info'|'warning'|'error' }>({ open: false });
+  
+  const [faceModalOpen, setFaceModalOpen] = useState(false);
+  const [pendingPositionId, setPendingPositionId] = useState<string | null>(null);
+  const [faceStreaming, setFaceStreaming] = useState(false);
+  const [faceScanning, setFaceScanning] = useState(false);
+  const [faceError, setFaceError] = useState<string | null>(null);
+  const [faceSuccess, setFaceSuccess] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const captureCanvasRef = useRef<HTMLCanvasElement>(null);
+  const detectorRef = useRef<FaceDetectorAPI | null>(null);
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -63,7 +86,7 @@ function VotingPanel() {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     return headers;
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     let mounted = true;
@@ -75,20 +98,25 @@ function VotingPanel() {
         });
         if (electionsRes.ok && mounted) {
           const electionsPayload = await electionsRes.json();
-          const elections: ActiveElection[] = electionsPayload?.success && Array.isArray(electionsPayload.data) ? electionsPayload.data : [];
-          const active = elections.find((e: { status?: string }) => e.status === 'active') || elections[0];
-          if (mounted && active?.id) {
-            setActiveElectionId(active.id);
-            setActiveElection(active);
+          const electionsData: Election[] = electionsPayload?.success && Array.isArray(electionsPayload.data) ? electionsPayload.data : [];
+          
+          const active = electionsData.find((e: Election) => e.status === 'active');
+          const upcoming = electionsData.find((e: Election) => e.status === 'draft' || new Date(e.startDate || '') > new Date());
+          
+          if (mounted) {
+            setActiveElection(active || null);
+            setNextElection(upcoming || null);
             
-            const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}`, {
-              credentials: 'include',
-              headers: getAuthHeaders(),
-            });
-            if (voteRes.ok && mounted) {
-              const voteData = await voteRes.json();
-              if (voteData.hasVoted) {
-                setHasVoted(true);
+            if (active?.id) {
+              const voteRes = await fetch(`${API_URL}/votes/check?electionId=${active.id}`, {
+                credentials: 'include',
+                headers: getAuthHeaders(),
+              });
+              if (voteRes.ok && mounted) {
+                const voteData = await voteRes.json();
+                if (voteData.hasVoted) {
+                  setHasVoted(true);
+                }
               }
             }
           }
@@ -129,17 +157,131 @@ function VotingPanel() {
       }
     })();
     return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   const selectCandidate = (posId: string, candId: string) => {
     setSelected(prev => ({ ...prev, [posId]: candId }));
   };
 
-  const castVote = async (posId: string) => {
+  const openFaceVerification = (posId: string) => {
+    setPendingPositionId(posId);
+    setFaceModalOpen(true);
+    setFaceError(null);
+    setFaceSuccess(false);
+  };
+
+  const startFaceCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setFaceStreaming(true);
+      if (typeof window !== "undefined" && window.FaceDetector && !detectorRef.current) {
+        try {
+          detectorRef.current = new window.FaceDetector({
+            fastMode: true,
+            maxDetectedFaces: 1,
+          });
+        } catch {
+          detectorRef.current = null;
+        }
+      }
+    } catch {
+      setFaceError("Camera access denied. Please enable camera permissions.");
+    }
+  };
+
+  const stopFaceCamera = () => {
+    const stream = videoRef.current?.srcObject as MediaStream;
+    stream?.getTracks().forEach((track) => track.stop());
+    setFaceStreaming(false);
+  };
+
+  const detectFaceInFrame = async (): Promise<boolean> => {
+    try {
+      if (!videoRef.current || !detectorRef.current) return false;
+      const faces = await detectorRef.current.detect(videoRef.current);
+      return !!faces && faces.length > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const captureFaceFrame = (): string => {
+    const video = videoRef.current;
+    const canvas = captureCanvasRef.current;
+    if (!video || !canvas) return "";
+    const w = Math.max(video.videoWidth || 0, 1);
+    const h = Math.max(video.videoHeight || 0, 1);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    ctx.drawImage(video, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  };
+
+  const handleFaceScan = async () => {
+    if (!faceStreaming || faceScanning) return;
+    setFaceError(null);
+    setFaceScanning(true);
+
+    const hasFace = await detectFaceInFrame();
+    if (!hasFace) {
+      setFaceError("No face detected. Please position your face in the camera.");
+      setFaceScanning(false);
+      return;
+    }
+
+    const faceData = captureFaceFrame();
+    if (!faceData) {
+      setFaceError("Failed to capture face. Please try again.");
+      setFaceScanning(false);
+      return;
+    }
+
+    try {
+      const verifyRes = await fetch(`${API_URL}/face/verify`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ userId: user?.id, faceEmbedding: faceData }),
+      });
+      
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        if (verifyData.verified) {
+          setFaceVerified(true);
+          setFaceSuccess(true);
+          setTimeout(() => {
+            setFaceModalOpen(false);
+            stopFaceCamera();
+            if (pendingPositionId) {
+              submitVote(pendingPositionId);
+            }
+          }, 1500);
+        } else {
+          setFaceError("Face verification failed. Please try again.");
+        }
+      } else {
+        setFaceError("Verification failed. Please try again.");
+      }
+    } catch {
+      setFaceError("Network error during verification. Please try again.");
+    } finally {
+      setFaceScanning(false);
+    }
+  };
+
+  const submitVote = async (posId: string) => {
     const candidateId = selected[posId];
-    if (!candidateId || !activeElectionId || !user) return;
+    if (!candidateId || !activeElection || !user) return;
     const payload: VotePayload = {
-      electionId: activeElectionId,
+      electionId: activeElection.id,
       positionId: posId,
       candidateId,
     };
@@ -154,7 +296,7 @@ function VotingPanel() {
         setSelected(prev => ({ ...prev, [posId]: null }));
         setToast({ open: true, title: 'Vote Cast', message: 'Your vote has been recorded.', variant: 'success' });
         
-        const voteRes = await fetch(`${API_URL}/votes/check?electionId=${activeElectionId}`, {
+        const voteRes = await fetch(`${API_URL}/votes/check?electionId=${activeElection.id}`, {
           credentials: 'include',
           headers: getAuthHeaders(),
         });
@@ -170,6 +312,39 @@ function VotingPanel() {
     } catch {
       setToast({ open: true, title: 'Vote Error', message: 'Network error. Please retry.', variant: 'error' });
     }
+  };
+
+  const handleVoteSubmit = (posId: string) => {
+    openFaceVerification(posId);
+  };
+
+  useEffect(() => {
+    if (faceModalOpen && !faceStreaming) {
+      startFaceCamera();
+    }
+    return () => {
+      if (faceModalOpen) {
+        stopFaceCamera();
+      }
+    };
+  }, [faceModalOpen, faceStreaming]);
+
+  useEffect(() => {
+    return () => {
+      stopFaceCamera();
+    };
+  }, []);
+
+  const formatNextElectionTime = () => {
+    if (!nextElection?.startDate) return null;
+    const start = new Date(nextElection.startDate);
+    const now = new Date();
+    const diff = start.getTime() - now.getTime();
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${days}d ${hours}h ${mins}m`;
   };
 
   if (hasVoted) {
@@ -253,12 +428,26 @@ function VotingPanel() {
     );
   }
 
-  if (!activeElectionId) {
+  if (!activeElection) {
     return (
       <div className="min-h-screen w-full bg-linear-to-br from-[#0b1022] via-[#1e1b44] to-[#0b1022] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white text-lg mb-2">No Active Election</p>
-          <p className="text-white/50">Please wait for an election to start.</p>
+        <div className="text-center max-w-md">
+          <div className="mb-6">
+            <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+              <Vote className="w-10 h-10 text-white/50" />
+            </div>
+          </div>
+          <p className="text-white text-xl font-semibold mb-2">No Active Election at the Moment</p>
+          <p className="text-white/50 mb-6">Please wait for an election to start.</p>
+          {nextElection && (
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-white/70 text-sm mb-1">Next election:</p>
+              <p className="text-white font-medium">{nextElection.title}</p>
+              {formatNextElectionTime() && (
+                <p className="text-purple-400 text-sm mt-2">Starts in: {formatNextElectionTime()}</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -267,6 +456,97 @@ function VotingPanel() {
   return (
     <div style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial' }} className="min-h-screen bg-linear-to-br from-[#0b1022] via-[#1e1b44] to-[#0b1022] text-white">
       <Toast open={toast.open} onClose={() => setToast({ open: false })} title={toast.title} message={toast.message} variant={toast.variant} />
+      
+      <Dialog open={faceModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          stopFaceCamera();
+        }
+        setFaceModalOpen(open);
+      }}>
+        <DialogContent className="bg-zinc-900 border-zinc-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Face Verification
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={captureCanvasRef} className="hidden" />
+              
+              {!faceStreaming && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-white/70">Starting camera...</p>
+                </div>
+              )}
+              
+              {faceSuccess && (
+                <div className="absolute inset-0 flex items-center justify-center bg-green-500/30">
+                  <div className="text-center">
+                    <Check className="w-16 h-16 text-green-400 mx-auto mb-2" />
+                    <p className="text-green-400 font-semibold">Verified!</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {faceError && (
+              <div className="flex items-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <p className="text-sm">{faceError}</p>
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={handleFaceScan}
+                disabled={!faceStreaming || faceScanning || faceSuccess}
+                className="flex-1"
+              >
+                {faceScanning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Scanning...
+                  </>
+                ) : faceSuccess ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Verified
+                  </>
+                ) : (
+                  <>
+                    <ScanLine className="w-4 h-4 mr-2" />
+                    Scan Face
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  stopFaceCamera();
+                  setFaceModalOpen(false);
+                }}
+                className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+              >
+                Cancel
+              </Button>
+            </div>
+            
+            <p className="text-xs text-zinc-400 text-center">
+              Position your face in the camera frame for verification
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex justify-between p-4 items-center">
         <h1 className="text-lg capitalize flex items-center gap-2">
           <Check className="ring-1 rounded-full p-2 text-green-400" /> Voting Panel
@@ -300,7 +580,7 @@ function VotingPanel() {
                 })}
               </div>
               <div className="flex justify-center mt-2">
-                <Button disabled={!currentlySelected || !activeElectionId} onClick={() => castVote(pos.id)}>Vote for {pos.name}</Button>
+                <Button disabled={!currentlySelected || !activeElection} onClick={() => handleVoteSubmit(pos.id)}>Vote for {pos.name}</Button>
               </div>
             </div>
           );

@@ -5,8 +5,6 @@ import {
   LogOut,
   Menu as MenuIcon,
   BadgeCheck,
-  RefreshCw,
-  Loader2,
   User,
 } from "lucide-react";
 import { useState } from "react";

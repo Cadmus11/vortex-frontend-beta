@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Camera, ScanLine, CheckCircle, AlertCircle, Loader2, Shield, User, Mail, BadgeCheck, Check, Vote } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { API_URL } from "../../config/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -54,7 +54,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     ok?: boolean;
   } | null>(null);
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -62,7 +62,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     return headers;
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     if (user?.isVerified) {
@@ -107,6 +107,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     };
     
     checkVoteStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, accessToken]);
 
   const startCamera = async () => {

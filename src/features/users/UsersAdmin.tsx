@@ -104,7 +104,7 @@ export default function UsersAdmin() {
 
   const itemsPerPage = 10
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -112,7 +112,7 @@ export default function UsersAdmin() {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     return headers;
-  };
+  }, [accessToken]);
 
   const showNotification = (type: "success" | "error", message: string) => {
     setNotification({ type, message })
@@ -132,7 +132,7 @@ export default function UsersAdmin() {
     } finally {
       setIsLoading(false)
     }
-  }, [accessToken])
+  }, [getAuthHeaders])
 
   useEffect(() => {
     fetchUsers()
