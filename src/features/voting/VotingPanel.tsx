@@ -468,6 +468,9 @@ function VotingPanel() {
               <Camera className="w-5 h-5" />
               Face Verification
             </DialogTitle>
+            <DialogDescription>
+              Position your face in the camera frame for identity verification.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">

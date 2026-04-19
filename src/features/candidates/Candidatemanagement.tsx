@@ -189,6 +189,9 @@ export default function CandidatesManagement() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Candidate</DialogTitle>
+            <DialogDescription>
+              Update the candidate information below.
+            </DialogDescription>
           </DialogHeader>
           {editing && (
             <div className="space-y-4">

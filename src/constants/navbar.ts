@@ -7,6 +7,7 @@ import {
   Users,
   FileText,
   ScanFace,
+  Trophy,
 } from "lucide-react";
 
 export const navList = [
@@ -18,6 +19,7 @@ export const navList = [
   { title: "Face Verification", link: "/admin/face-verification", icon: ScanFace },
   { title: "Cast Vote", link: "/admin/cast-vote", icon: Vote },
   { title: "Campaigns", link: "/admin/campaigns", icon: Megaphone },
+  { title: "Election Results", link: "/admin/results", icon: Trophy },
 ];
 
 export const voterList = [

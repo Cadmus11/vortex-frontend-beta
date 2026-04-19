@@ -11,6 +11,7 @@ import AdminElection from "@/features/elections/AdminElection";
 import AdminPositions from "@/features/positions/AdminPositions";
 import CampaignPlatform from "@/features/campaigns/CampaignPlatform";
 import CandidatesManagement from "@/features/candidates/Candidatemanagement";
+import ElectionResults from "@/features/results/ElectionResults";
 import NotFound from "@/pages/NotFound";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -47,6 +48,7 @@ const AppProtectedRoutes = () => {
         <Route path="/admin/cast-vote" element={<VotingPanel />} />
         <Route path="/admin/campaigns" element={<CampaignPlatform />} />
         <Route path="/admin/face-verification" element={<FaceGate />} />
+        <Route path="/admin/results" element={<ElectionResults />} />
       </Route>
 
       <Route path="/" element={<HomeRedirect />} />

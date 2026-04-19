@@ -18,7 +18,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="w-dvw h-dvh overflow-hidden bg-background">
         <div className="relative w-full h-full flex flex-col">
           {!isAuthPage && (
-            <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b bg-background z-50">
+            <header className="shrink-0 flex items-center justify-between px-4 py-3 shadow bg-background z-50">
               <div className="flex items-center gap-2">
                 <div className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent animate-pulse delay-300 duration-1000">
                   {/* <Shield className="h-5 w-5 text-primary-foreground" /> */}
