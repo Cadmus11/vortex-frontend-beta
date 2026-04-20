@@ -15,7 +15,9 @@ import ElectionResults from "@/features/results/ElectionResults";
 import NotFound from "@/pages/NotFound";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import ForgotPasswordPage from "@/pages/PasswordPage";
 import AdminWelcome from "@/pages/AdminWelcome";
+import SettingsPage from "@/pages/SettingsPage";
 import { useAuth } from "@/context/AuthContext";
 
 const HomeRedirect = () => {
@@ -30,6 +32,7 @@ const AppProtectedRoutes = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
       <Route element={<ProtectedRoute roles={["voter"]} />}>
         <Route path="/voter/dashboard" element={<Dashboard />} />
@@ -37,6 +40,7 @@ const AppProtectedRoutes = () => {
         <Route path="/voter/campaigns" element={<CampaignPlatform />} />
         <Route path="/voter/cast-vote" element={<VotingPanel />} />
         <Route path="/voter/face-verification" element={<FaceGate />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["admin"]} />}>
@@ -51,6 +55,7 @@ const AppProtectedRoutes = () => {
         <Route path="/admin/campaigns" element={<CampaignPlatform />} />
         <Route path="/admin/face-verification" element={<FaceGate />} />
         <Route path="/admin/results" element={<ElectionResults />} />
+        <Route path="/admin/settings" element={<SettingsPage />} />
       </Route>
 
       <Route path="/" element={<HomeRedirect />} />
