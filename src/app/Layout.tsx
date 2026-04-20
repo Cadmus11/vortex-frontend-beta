@@ -20,9 +20,9 @@ export default function Layout({ children }: LayoutProps) {
           {!isAuthPage && (
             <header className="shrink-0 flex items-center justify-between px-4 py-3 shadow bg-background z-50">
               <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent animate-pulse delay-300 duration-1000">
+                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent">
                   {/* <Shield className="h-5 w-5 text-primary-foreground" /> */}
-                  <img src="/vortex.svg" alt="" />
+                  <img src="/vortex.svg" alt="Vortex-logo" />
                 </div>
                 <span className="text-lg font-bold tracking-tight">Vortex</span>
               </div>

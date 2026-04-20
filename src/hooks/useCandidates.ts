@@ -1,88 +1,83 @@
-import { useState } from "react"
-import { api } from "@/utils/api"
+import useFetch from './useFetch';
+import { clearCache } from './useFetch';
 
 export interface Candidate {
-  id: string
-  name: string
-  position: string
-  manifesto?: string
-  imageUrl?: string
-  electionId?: string
-  createdAt?: string
-}
-
-interface CandidateResponse {
-  id: number | string;
+  id: string;
   name: string;
-  position: string;
-  manifesto?: string;
+  party: string;
+  positionId: string;
+  electionId: string;
+  slogan?: string;
+  color?: string;
   imageUrl?: string;
-  electionId?: string;
+  votes?: number;
   createdAt?: string;
 }
 
-export function useCandidates() {
-  const [candidates, setCandidates] = useState<Candidate[]>([])
-  const [loading, setLoading] = useState(false)
+interface CandidatesResponse {
+  success: boolean;
+  data: Candidate[];
+}
 
-  const fetchCandidates = async () => {
-    setLoading(true)
-    try {
-      const res = await api("/api/candidates", { method: "GET" })
-      if (res.ok) {
-        const data = await res.json() as CandidateResponse[]
-        const mapped: Candidate[] = data.map((c) => ({
-          id: String(c.id),
-          name: c.name,
-          position: c.position,
-          manifesto: c.manifesto,
-          imageUrl: c.imageUrl,
-          electionId: c.electionId,
-          createdAt: c.createdAt
-        }))
-        setCandidates(mapped)
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
-    }
-  }
+interface CandidateResponse {
+  success: boolean;
+  candidate: Candidate;
+}
 
-  const addCandidate = async (candidate: Candidate) => {
-    const res = await api("/api/candidates", {
-      method: "POST",
-      body: JSON.stringify(candidate)
-    })
-    if (res.ok) {
-      const newCand = await res.json() as Candidate
-      setCandidates(prev => [...prev, newCand])
-    }
-  }
+export function useCandidates(electionId?: string) {
+  const endpoint = electionId ? `/candidates?electionId=${electionId}` : '/candidates';
+  const { data, loading, error, post, put, del, refresh } = useFetch<CandidatesResponse>(endpoint);
 
-  const updateCandidate = async (updated: Candidate) => {
-    const res = await api(`/api/candidates/${updated.id}`, {
-      method: "PUT",
-      body: JSON.stringify(updated)
-    })
-    if (res.ok) {
-      setCandidates(prev => prev.map(c => (c.id === updated.id ? updated : c)))
-    }
-  }
+  const candidates = data?.data || [];
 
-  const deleteCandidate = async (id: string) => {
-    const res = await api(`/api/candidates/${id}`, { method: "DELETE" })
-    if (res.ok) {
-      setCandidates(prev => prev.filter(c => c.id !== id))
-    }
-  }
+  const createCandidate = async (candidateData: Partial<Candidate>) => {
+    const result = await post(candidateData);
+    clearCache('/candidates');
+    return result;
+  };
+
+  const updateCandidate = async (_id: string, updates: Partial<Candidate>) => {
+    const result = await put(updates);
+    clearCache('/candidates');
+    return result;
+  };
+
+  const deleteCandidate = async (_id: string) => {
+    const result = await del();
+    clearCache('/candidates');
+    return result;
+  };
 
   return {
     candidates,
     loading,
-    fetchCandidates,
-    addCandidate,
+    error,
+    refresh,
+    createCandidate,
     updateCandidate,
     deleteCandidate,
-  }
+  };
+}
+
+export function useCandidate(id: string) {
+  const { data, loading, error, put, refresh } = useFetch<CandidateResponse>(`/candidates/${id}`, {
+    immediate: !!id,
+  });
+
+  const candidate = data?.candidate;
+
+  const updateCandidate = async (updates: Partial<Candidate>) => {
+    const result = await put(updates);
+    clearCache(`/candidates/${id}`);
+    clearCache('/candidates');
+    return result;
+  };
+
+  return {
+    candidate,
+    loading,
+    error,
+    refresh,
+    updateCandidate,
+  };
 }

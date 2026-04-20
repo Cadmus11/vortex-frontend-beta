@@ -343,18 +343,18 @@ function VotingPanel() {
 
   if (hasVoted) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-linear-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
         <div className="relative">
           <div className="absolute inset-0 animate-pulse">
-            <div className="w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/10 to-purple-600/10 blur-3xl mx-auto" />
+            <div className="w-96 h-96 rounded-full bg-linear-to-br from-purple-500/10 to-purple-600/10 blur-3xl mx-auto" />
           </div>
 
-          <Card className="relative w-96 bg-gradient-to-br backdrop-blur-xl border-2 border-purple-500/30 shadow-2xl overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500" />
+          <Card className="relative w-96 bg-linear-to-br backdrop-blur-xl border-2 border-purple-500/30 shadow-2xl overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-500 via-purple-400 to-purple-500" />
             
             <div className="text-center p-6 pb-2">
               <div className="mx-auto mb-4">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg">
+                <div className="w-24 h-24 rounded-full bg-linear-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg">
                   <Vote className="w-12 h-12 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
@@ -463,7 +463,7 @@ function VotingPanel() {
               <Camera className="w-5 h-5" />
               Face Verification
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription aria-describedby={undefined} className="sr-only">
               Position your face in the camera frame for identity verification.
             </DialogDescription>
           </DialogHeader>
@@ -497,7 +497,7 @@ function VotingPanel() {
             
             {faceError && (
               <div className="flex items-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-lg">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <p className="text-sm">{faceError}</p>
               </div>
             )}
