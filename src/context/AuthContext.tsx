@@ -14,7 +14,7 @@ interface AuthContextType {
   accessToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, role?: 'admin' | 'voter') => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, accessToken, refreshToken, refreshIntervalId]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -166,6 +166,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
       setAccessToken(data.accessToken);
       localStorage.setItem('accessToken', data.accessToken);
+      return true;
+    } catch {
+      return false;
     } finally {
       setIsLoading(false);
     }

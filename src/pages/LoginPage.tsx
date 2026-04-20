@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Eye, EyeOff, Shield } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Shield, CheckCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,11 +25,20 @@ export default function LoginPage() {
       return;
     }
 
-    try {
-      await login(email, password);
+    const success = await login(email, password);
+    if (success) {
+      setShowSuccessDialog(true);
+    } else {
+      setError('Invalid email or password');
+    }
+  };
+
+  const handleDialogClose = () => {
+    setShowSuccessDialog(false);
+    if (user?.role === 'admin') {
+      navigate('/admin');
+    } else {
       navigate('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
@@ -126,6 +137,25 @@ export default function LoginPage() {
             </Link>
           </div>
         </div>
+
+        <Dialog open={showSuccessDialog} onOpenChange={handleDialogClose}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Login Successful
+              </DialogTitle>
+              <DialogDescription>
+                Welcome back! You have successfully signed in to your account.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end">
+              <Button onClick={handleDialogClose}>
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           By signing in, you agree to our Terms of Service and Privacy Policy
