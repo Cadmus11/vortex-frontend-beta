@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { cn } from "@/lib/utils";
 import { Check, Vote, Loader2, Camera, ScanLine, AlertCircle } from "lucide-react";
@@ -321,11 +321,6 @@ function VotingPanel() {
     if (faceModalOpen && !faceStreaming) {
       startFaceCamera();
     }
-    return () => {
-      if (faceModalOpen) {
-        stopFaceCamera();
-      }
-    };
   }, [faceModalOpen, faceStreaming]);
 
   useEffect(() => {
