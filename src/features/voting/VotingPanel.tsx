@@ -165,6 +165,10 @@ function VotingPanel() {
   };
 
   const openFaceVerification = (posId: string) => {
+    if (!user?.isVerified) {
+      setFaceError("Please complete face verification first.");
+      return;
+    }
     setPendingPositionId(posId);
     setFaceModalOpen(true);
     setFaceError(null);
@@ -249,12 +253,12 @@ function VotingPanel() {
         method: "POST",
         credentials: "include",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ userId: user?.id, faceEmbedding: faceData }),
+        body: JSON.stringify({ faceEmbedding: faceData }),
       });
       
       if (verifyRes.ok) {
         const verifyData = await verifyRes.json();
-        if (verifyData.verified) {
+        if (verifyData.verified === true) {
           setFaceSuccess(true);
           setTimeout(() => {
             setFaceModalOpen(false);

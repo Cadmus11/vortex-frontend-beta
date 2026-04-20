@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import Menu from "@/components/custom/Menu"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,7 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
-import { ThemeToggle } from "@/context/ThemeToggler"
+
 import { API_URL } from "../../config/api"
 import { useAuth } from "@/context/AuthContext"
 import {
@@ -319,8 +319,7 @@ export default function UsersAdmin() {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
-            <ThemeToggle />
-            <Menu />
+          
           </div>
         </header>
 
@@ -423,11 +422,11 @@ export default function UsersAdmin() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[300px]">Email</TableHead>
+                        <TableHead className="w-75">Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Admission Number</TableHead>
                         <TableHead>Verified</TableHead>
-                        <TableHead className="w-[80px]">Actions</TableHead>
+                        <TableHead className="w-20">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -523,7 +522,7 @@ export default function UsersAdmin() {
 
       {/* Create User Modal */}
       <Dialog open={modalType === "create"} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-125">
           <DialogHeader>
             <DialogTitle>Create New User</DialogTitle>
             <DialogDescription>
@@ -597,7 +596,7 @@ export default function UsersAdmin() {
 
       {/* Edit User Modal */}
       <Dialog open={modalType === "edit"} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-125">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -668,7 +667,7 @@ export default function UsersAdmin() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={modalType === "delete"} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>

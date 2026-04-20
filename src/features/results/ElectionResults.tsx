@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "../../config/api";
-import Menu from "@/components/custom/Menu";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { ThemeToggle } from "@/context/ThemeToggler";
+
 import {
   Trophy,
   Download,
@@ -299,8 +299,7 @@ export default function ElectionResults() {
 
           <div className="flex items-center gap-4">
             <Badge variant="secondary">Admin Panel</Badge>
-            <ThemeToggle />
-            <Menu />
+         
           </div>
         </header>
 

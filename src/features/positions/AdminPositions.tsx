@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/utils/api';
 import CreatePositionForm from './CreatePositionForm';
-import Menu from '@/components/custom/Menu';
+
 
 interface Position {
   id?: string;
@@ -44,7 +44,7 @@ export default function AdminPositions() {
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center p-2">
         <h3 className="text-lg font-semibold">Positions (Admin)</h3>
-        <Menu />
+     
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">

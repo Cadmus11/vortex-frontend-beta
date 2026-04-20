@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, UserPlus, Shield } from 'lucide-react';
+import { Upload, UserPlus, Shield, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/context/ThemeToggler';
 import { API_URL } from '../../config/api';
 
@@ -42,6 +42,8 @@ export default function AddCandidate() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isLoadingElections, setIsLoadingElections] = useState(true);
   const [isLoadingPositions, setIsLoadingPositions] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'uploading' | 'saving' | 'success'>('idle');
 
   useEffect(() => {
     fetch(`${API_URL}/elections`, { credentials: "include" })
@@ -83,7 +85,7 @@ export default function AddCandidate() {
       .finally(() => setIsLoadingPositions(false));
   }, []);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<CandidateFormValues>({
       resolver: zodResolver(candidateSchema),
       defaultValues: {
@@ -99,14 +101,19 @@ export default function AddCandidate() {
   const selectedElection = watch('electionId');
 
   const onSubmit = async (data: CandidateFormValues) => {
-    let finalImageUrl: string | null = imagePreview;
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setSubmitStatus(selectedImageFile ? 'uploading' : 'saving');
 
-    if (selectedImageFile) {
-      const formData = new FormData();
-      formData.append('file', selectedImageFile);
-      formData.append('upload_preset', 'vortex_candidates');
+    let finalImageUrl: string | null = null;
 
-      try {
+    try {
+      if (selectedImageFile) {
+        const formData = new FormData();
+        formData.append('file', selectedImageFile);
+        formData.append('upload_preset', 'vortex_candidates');
+
         const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
         
         if (!cloudName) {
@@ -139,44 +146,47 @@ export default function AddCandidate() {
         }
         
         finalImageUrl = cloudData.secure_url || cloudData.url || null;
-        
-        if (!finalImageUrl) {
-          console.warn('No image URL in Cloudinary response:', cloudData);
-        }
-      } catch (err) {
-        console.error('Image upload failed:', err);
-        alert('Image upload failed. Candidate will be created without image.');
       }
+
+      setSubmitStatus('saving');
+
+      const payload = {
+        name: data.name,
+        position: data.position,
+        party: data.party,
+        manifesto: data.manifesto,
+        electionId: data.electionId,
+        imageUrl: finalImageUrl,
+      };
+
+      const res = await fetch(`${API_URL}/candidates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error('Failed to create candidate', errData);
+        throw new Error(errData?.error || errData?.message || 'Failed to create candidate');
+      }
+
+      await res.json();
+      
+      setSubmitStatus('success');
+      setImagePreview(null);
+      setSelectedImageFile(null);
+      reset();
+      
+      setTimeout(() => setSubmitStatus('idle'), 2000);
+    } catch (err) {
+      console.error('Failed to create candidate:', err);
+      alert(err instanceof Error ? err.message : 'Failed to create candidate');
+      setSubmitStatus('idle');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const payload = {
-      name: data.name,
-      position: data.position,
-      party: data.party,
-      manifesto: data.manifesto,
-      electionId: data.electionId,
-      imageUrl: finalImageUrl ?? null,
-    };
-
-    const res = await fetch(`${API_URL}/candidates`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      console.error('Failed to create candidate', errData);
-      alert(errData?.error || errData?.message || 'Failed to create candidate');
-      return;
-    }
-
-    await res.json();
-    alert('Candidate Added Successfully');
-    
-    setImagePreview(null);
-    setSelectedImageFile(null);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,9 +311,30 @@ export default function AddCandidate() {
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || submitStatus !== 'idle'}
               >
-                {isSubmitting ? 'Adding Candidate...' : 'Add Candidate'}
+                {isSubmitting ? (
+                  submitStatus === 'uploading' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading Image...
+                    </>
+                  ) : submitStatus === 'saving' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving to Database...
+                    </>
+                  ) : submitStatus === 'success' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Success!
+                    </>
+                  ) : (
+                    'Adding Candidate...'
+                  )
+                ) : (
+                  'Add Candidate'
+                )}
               </Button>
             </form>
           </CardContent>

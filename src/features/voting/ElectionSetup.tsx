@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import Menu from "@/components/custom/Menu"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ThemeToggle } from "@/context/ThemeToggler"
+
 
 import {
   AlertCircle,
@@ -176,8 +176,7 @@ export default function ElectionSetup() {
 
           <div className="flex items-center gap-4">
             <Badge variant="secondary">Admin Panel</Badge>
-            <ThemeToggle />
-            <Menu />
+          
           </div>
         </header>
 
