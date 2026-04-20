@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { API_URL } from '@/config/api';
 
 export interface User {
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [intervalId, setIntervalId] = useState<number | null>(null);
+  const intervalIdRef = useRef<number | null>(null);
 
   // Refresh token
   const refreshToken = useCallback(async (): Promise<boolean> => {
@@ -132,9 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Token refresh interval
   useEffect(() => {
     if (!user || !accessToken) {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
       }
       return;
     }
@@ -143,10 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshToken();
     }, TOKEN_REFRESH_INTERVAL);
 
-    setIntervalId(id);
+    intervalIdRef.current = id;
 
     return () => clearInterval(id);
-  }, [user, accessToken, refreshToken]); // Removed intervalId from deps
+  }, [user, accessToken, refreshToken]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
@@ -200,10 +200,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error(e);
     } finally {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
       setUser(null);
       setAccessToken(null);
-      setIntervalId(null);
       localStorage.removeItem('accessToken');
     }
   };

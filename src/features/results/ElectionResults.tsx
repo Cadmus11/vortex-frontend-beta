@@ -66,7 +66,7 @@ interface ResultsData {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
 
 export default function ElectionResults() {
-  const { user, accessToken } = useAuth();
+  const { accessToken } = useAuth();
   const [elections, setElections] = useState<Election[]>([]);
   const [selectedElection, setSelectedElection] = useState<Election | null>(null);
   const [results, setResults] = useState<ResultsData | null>(null);
@@ -410,7 +410,7 @@ export default function ElectionResults() {
                     </div>
 
                     <div className="space-y-8">
-                      {results.positions.map((pos, idx) => {
+                      {results.positions.map((pos) => {
                         const sortedCandidates = [...pos.candidates].sort(
                           (a, b) => b.votes - a.votes
                         );
