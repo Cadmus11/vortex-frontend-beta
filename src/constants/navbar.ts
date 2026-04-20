@@ -7,7 +7,7 @@ import {
   Users,
   FileText,
   ScanFace,
-  Trophy,
+  Trophy,Settings
 } from "lucide-react";
 
 export const navList = [
@@ -20,6 +20,7 @@ export const navList = [
   { title: "Cast Vote", link: "/admin/cast-vote", icon: Vote },
   { title: "Campaigns", link: "/admin/campaigns", icon: Megaphone },
   { title: "Election Results", link: "/admin/results", icon: Trophy },
+  { title: "Settings", link: "/admin/settings", icon: Settings }
 ];
 
 export const voterList = [
@@ -27,6 +28,7 @@ export const voterList = [
   { title: "Cast Vote", link: "/voter/cast-vote", icon: Vote },
   { title: "Campaigns", link: "/voter/campaigns", icon: Megaphone },
   { title: "Face Verification", link: "/voter/face-verification", icon: ScanFace },
+  { title: "Settings", link: "/settings", icon: Settings }
 ];
 
 

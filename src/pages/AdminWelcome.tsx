@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { Shield, Users, Vote, Settings, BarChart3, UserPlus, FileText, LayoutDashboard } from "lucide-react";
+import { Shield, Users, Vote, Settings, BarChart3, UserPlus, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 
