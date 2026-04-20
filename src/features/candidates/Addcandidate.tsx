@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import Menu from '@/components/custom/Menu';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, UserPlus, Shield, Loader2 } from 'lucide-react';
-import { ThemeToggle } from '@/context/ThemeToggler';
+
 import { API_URL } from '../../config/api';
 
 const candidateSchema = z.object({
@@ -46,44 +46,66 @@ export default function AddCandidate() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'uploading' | 'saving' | 'success'>('idle');
 
   useEffect(() => {
-    fetch(`${API_URL}/elections`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setElections(data.map((e: { id: string; title?: string; name?: string }) => ({ 
-            id: e.id, 
-            title: e.title ?? e.name ?? '' 
-          })));
-        } else if (data.data && Array.isArray(data.data)) {
+    const fetchElections = async () => {
+      try {
+        const res = await fetch(`${API_URL}/elections`, { 
+          credentials: "include" 
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
           setElections(data.data.map((e: { id: string; title?: string; name?: string }) => ({ 
             id: e.id, 
             title: e.title ?? e.name ?? '' 
           })));
+        } else if (Array.isArray(data)) {
+          setElections(data.map((e: { id: string; title?: string; name?: string }) => ({ 
+            id: e.id, 
+            title: e.title ?? e.name ?? '' 
+          })));
         }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingElections(false));
+      } catch (err) {
+        console.error('Failed to fetch elections:', err);
+      } finally {
+        setIsLoadingElections(false);
+      }
+    };
+    fetchElections();
   }, []);
 
+  const fetchPositions = async (electionId: string) => {
+    setIsLoadingPositions(true);
+    setPositions([]);
+    try {
+      const res = await fetch(`${API_URL}/positions?electionId=${electionId}`, { 
+        credentials: "include" 
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setPositions(data.data.map((p: { id?: string; name?: string }) => ({ 
+          id: p.id ?? '', 
+          name: p.name ?? '' 
+        })));
+      } else if (Array.isArray(data)) {
+        setPositions(data.map((p: { id?: string; name?: string }) => ({ 
+          id: p.id ?? '', 
+          name: p.name ?? '' 
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch positions:', err);
+    } finally {
+      setIsLoadingPositions(false);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${API_URL}/positions`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setPositions(data.map((p: { positionId?: string; id?: string; positionName?: string; name?: string }) => ({ 
-            id: p.positionId ?? p.id ?? '', 
-            name: p.positionName ?? p.name ?? '' 
-          })));
-        } else if (data.data && Array.isArray(data.data)) {
-          setPositions(data.data.map((p: { positionId?: string; id?: string; positionName?: string; name?: string }) => ({ 
-            id: p.positionId ?? p.id ?? '', 
-            name: p.positionName ?? p.name ?? '' 
-          })));
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingPositions(false));
-  }, []);
+    if (selectedElection) {
+      fetchPositions(selectedElection);
+    } else {
+      setPositions([]);
+      setIsLoadingPositions(false);
+    }
+  }, [selectedElection]);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<CandidateFormValues>({
@@ -215,8 +237,7 @@ export default function AddCandidate() {
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="secondary">Admin Panel</Badge>
-            <ThemeToggle />
-            <Menu />
+          
           </div>
         </header>
 
