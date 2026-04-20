@@ -15,6 +15,7 @@ import ElectionResults from "@/features/results/ElectionResults";
 import NotFound from "@/pages/NotFound";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import AdminWelcome from "@/pages/AdminWelcome";
 import { useAuth } from "@/context/AuthContext";
 
 const HomeRedirect = () => {
@@ -39,6 +40,7 @@ const AppProtectedRoutes = () => {
       </Route>
 
       <Route element={<ProtectedRoute roles={["admin"]} />}>
+        <Route path="/admin" element={<AdminWelcome />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/election" element={<ElectionSetup />} />
         <Route path="/admin/positions" element={<AdminPositions />} />

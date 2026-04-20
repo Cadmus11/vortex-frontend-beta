@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Check, Vote, Loader2, Camera, ScanLine, AlertCircle } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useFaceRecognition } from "@/hooks/useFaceRecognition";
 import Toast from "@/components/ui/toast";
 import { API_URL } from "../../config/api";
 
@@ -76,7 +77,8 @@ function VotingPanel() {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
-  const detectorRef = useRef<FaceDetectorAPI | null>(null);
+  
+  const { loaded: modelsLoaded, loading: loadingModels, loadModels, getDescriptor, detectFace } = useFaceRecognition();
 
   const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
@@ -160,6 +162,13 @@ function VotingPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
+  useEffect(() => {
+    if (modelsLoaded) return;
+    if (!loadingModels) {
+      loadModels();
+    }
+  }, [modelsLoaded, loadingModels, loadModels]);
+
   const selectCandidate = (posId: string, candId: string) => {
     setSelected(prev => ({ ...prev, [posId]: candId }));
   };
@@ -205,11 +214,16 @@ function VotingPanel() {
 
   const detectFaceInFrame = async (): Promise<boolean> => {
     try {
-      if (!videoRef.current || !detectorRef.current) return false;
-      const faces = await detectorRef.current.detect(videoRef.current);
-      return !!faces && faces.length > 0;
+      if (!videoRef.current) return false;
+      
+      if (!modelsLoaded) {
+        return true;
+      }
+      
+      const result = await detectFace(videoRef.current);
+      return result !== null;
     } catch {
-      return false;
+      return true;
     }
   };
 
@@ -235,7 +249,7 @@ function VotingPanel() {
     setFaceScanning(true);
 
     const hasFace = await detectFaceInFrame();
-    if (!hasFace) {
+    if (!hasFace && modelsLoaded) {
       setFaceError("No face detected. Please position your face in the camera.");
       setFaceScanning(false);
       return;
@@ -248,12 +262,20 @@ function VotingPanel() {
       return;
     }
 
+    let descriptor: number[] | null = null;
+    if (modelsLoaded && videoRef.current) {
+      descriptor = await getDescriptor(videoRef.current);
+    }
+
     try {
       const verifyRes = await fetch(`${API_URL}/face/verify`, {
         method: "POST",
         credentials: "include",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ faceEmbedding: faceData }),
+        body: JSON.stringify({ 
+          faceEmbedding: faceData,
+          descriptor: descriptor 
+        }),
       });
       
       if (verifyRes.ok) {

@@ -6,24 +6,17 @@ import { Camera, ScanLine, CheckCircle, AlertCircle, Loader2, Shield, User, Mail
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { API_URL } from "../../config/api";
 import { useAuth } from "@/context/AuthContext";
+import { useFaceRecognition } from "@/hooks/useFaceRecognition";
 
 interface FaceGateProps {
   onVerified?: () => void;
 }
 
-interface FaceDetectorAPI {
-  detect: (source: HTMLVideoElement) => Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
-}
-
-declare global {
-  interface Window {
-    FaceDetector: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorAPI;
-  }
-}
-
 interface EmbeddingResponse {
+  success: boolean;
   id?: string;
   embeddingId?: string;
+  error?: string;
 }
 
 interface ActiveElection {
@@ -42,7 +35,6 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
   const { user, accessToken } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
-  const detectorRef = useRef<FaceDetectorAPI | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -53,6 +45,8 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     id?: string;
     ok?: boolean;
   } | null>(null);
+  const [detectorAvailable, setDetectorAvailable] = useState<boolean | null>(null);
+  const { loaded: modelsLoaded, error: modelError, loadModels, getDescriptor, detectFace } = useFaceRecognition();
 
   const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
@@ -129,42 +123,39 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
 
   useEffect(() => {
     if (!verified) {
+      loadModels();
       startCamera();
-      if (typeof window !== "undefined" && window.FaceDetector) {
-        try {
-          detectorRef.current = new window.FaceDetector({
-            fastMode: true,
-            maxDetectedFaces: 1,
-          });
-        } catch {
-          detectorRef.current = null;
-        }
-      }
     }
     return () => stopCamera();
   }, [verified]);
 
+  useEffect(() => {
+    if (modelsLoaded) {
+      setDetectorAvailable(true);
+    } else if (modelError) {
+      setDetectorAvailable(false);
+    }
+  }, [modelsLoaded, modelError]);
+
   const detectFaceInFrame = async (): Promise<boolean> => {
     try {
-      if (!videoRef.current || !detectorRef.current) return false;
-      const faces = await detectorRef.current.detect(videoRef.current);
-      return !!faces && faces.length > 0;
+      if (!videoRef.current) return false;
+      
+      if (!modelsLoaded) {
+        return true;
+      }
+      
+      const result = await detectFace(videoRef.current);
+      return result !== null;
     } catch {
-      return false;
+      return true;
     }
   };
 
-  const captureFrame = (): {
-    dataURL: string;
-    brightness: number;
-    w: number;
-    h: number;
-  } => {
+  const captureFrame = (): string => {
     const video = videoRef.current;
     const canvas = captureCanvasRef.current;
-    if (!video || !canvas) {
-      return { dataURL: "", brightness: 0, w: 0, h: 0 };
-    }
+    if (!video || !canvas) return "";
     const w = Math.max(video.videoWidth || 0, 1);
     const h = Math.max(video.videoHeight || 0, 1);
     if (canvas.width !== w || canvas.height !== h) {
@@ -172,22 +163,9 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       canvas.height = h;
     }
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return { dataURL: "", brightness: 0, w, h };
-    }
+    if (!ctx) return "";
     ctx.drawImage(video, 0, 0, w, h);
-    const imageData = ctx.getImageData(0, 0, w, h).data;
-    let sum = 0;
-    for (let i = 0; i < imageData.length; i += 4) {
-      const r = imageData[i];
-      const g = imageData[i + 1];
-      const b = imageData[i + 2];
-      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      sum += lum;
-    }
-    const brightness = sum / (imageData.length / 4);
-    const dataURL = canvas.toDataURL("image/jpeg", 0.92);
-    return { dataURL, brightness, w, h };
+    return canvas.toDataURL("image/jpeg", 0.92);
   };
 
   const handleScan = async () => {
@@ -197,7 +175,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
     setScanning(true);
 
     const hasFace = await detectFaceInFrame();
-    if (!hasFace) {
+    if (!hasFace && modelsLoaded) {
       setLightingHint(
         "No face detected. Please adjust your position and try again.",
       );
@@ -205,34 +183,47 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
       return;
     }
 
-    const { dataURL, brightness } = captureFrame();
-    if (brightness > 0 && brightness < 60) {
-      setLightingHint(
-        "Lighting is a bit dim. Please improve lighting for better scanning.",
-      );
+    const dataURL = captureFrame();
+    if (!dataURL) {
+      setLightingHint("Failed to capture image. Please try again.");
       setScanning(false);
       return;
     }
 
+    let descriptor: number[] | null = null;
+    
+    if (modelsLoaded && videoRef.current) {
+      descriptor = await getDescriptor(videoRef.current);
+      if (!descriptor) {
+        setLightingHint("Failed to generate face descriptor. Please try again.");
+        setScanning(false);
+        return;
+      }
+    }
+
     try {
-      const payload = { faceEmbedding: dataURL };
+      const payload = { 
+        faceEmbedding: JSON.stringify(descriptor || []),
+        imageData: dataURL 
+      };
       const res = await fetch(`${API_URL}/face/register`, {
         method: "POST",
         credentials: "include",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        const json = await res.json() as EmbeddingResponse;
+      
+      const json = await res.json() as EmbeddingResponse;
+      
+      if (res.ok && json.success) {
         setEmbeddingInfo({
-          id: json.id ?? json.embeddingId ?? undefined,
+          id: json.id,
           ok: true,
         });
         setVerified(true);
         onVerified?.();
       } else {
-        const text = await res.text();
-        setLightingHint("Failed to complete verification: " + text);
+        setLightingHint(json.error || "Failed to complete verification");
       }
     } catch {
       setLightingHint("Network error during verification. Please try again.");
@@ -249,17 +240,18 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
 
   const lightingStatus = useMemo(() => {
     if (lightingHint) return lightingHint;
-    return verified
-      ? "Identity Confirmed"
-      : "Position your face inside the frame";
-  }, [lightingHint, verified]);
+    if (verified) return "Identity Confirmed";
+    if (detectorAvailable === null) return "Checking face detection...";
+    if (detectorAvailable === false) return "Face detection unavailable. Ready to scan.";
+    return "Position your face inside the frame";
+  }, [lightingHint, verified, detectorAvailable]);
 
   if (verified && !hasVoted) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-linear-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
         <div className="relative">
           <div className="absolute inset-0 animate-pulse">
-            <div className={cn("w-80 h-80 rounded-full bg-gradient-to-br opacity-20 blur-3xl", isAdmin ? "bg-blue-500" : "bg-emerald-500")} />
+            <div className={cn("w-80 h-80 rounded-full bg-linear-to-br opacity-20 blur-3xl", isAdmin ? "bg-blue-500" : "bg-emerald-500")} />
           </div>
           <div className="absolute -top-4 -left-4 w-8 h-8">
             <div className={cn("absolute w-full h-full rounded-full animate-orbit", bgAccent, "opacity-20")} />
@@ -278,12 +270,12 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
             <div className={cn("absolute w-2 h-2 top-1 left-1 rounded-full animate-pulse", bgAccent)} />
           </div>
 
-          <Card className={cn("relative w-80 bg-gradient-to-br backdrop-blur-xl border-2 shadow-2xl overflow-hidden", cardColor)}>
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-50" />
+          <Card className={cn("relative w-80 bg-linear-to-br backdrop-blur-xl border-2 shadow-2xl overflow-hidden", cardColor)}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-current to-transparent opacity-50" />
             
             <CardHeader className="text-center pb-2">
               <div className="mx-auto mb-4 relative">
-                <div className={cn("w-24 h-24 rounded-full bg-gradient-to-br flex items-center justify-center shadow-lg", isAdmin ? "bg-blue-100 dark:bg-blue-900/30" : "bg-emerald-100 dark:bg-emerald-900/30")}>
+                <div className={cn("w-24 h-24 rounded-full bg-linear-to-br flex items-center justify-center shadow-lg", isAdmin ? "bg-blue-100 dark:bg-blue-900/30" : "bg-emerald-100 dark:bg-emerald-900/30")}>
                   <User className={cn("w-12 h-12", accentColor)} />
                 </div>
                 <div className={cn("absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center shadow-md", bgAccent)}>
@@ -356,18 +348,18 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
 
   if (hasVoted) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-linear-to-br from-zinc-100 via-zinc-50 to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
         <div className="relative">
           <div className="absolute inset-0 animate-pulse">
-            <div className="w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/10 to-purple-600/10 blur-3xl mx-auto" />
+            <div className="w-96 h-96 rounded-full bg-linear-to-br from-purple-500/10 to-purple-600/10 blur-3xl mx-auto" />
           </div>
 
-          <Card className="relative w-96 bg-gradient-to-br backdrop-blur-xl border-2 border-purple-500/30 shadow-2xl overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500" />
+          <Card className="relative w-96 bg-linear-to-br backdrop-blur-xl border-2 border-purple-500/30 shadow-2xl overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-500 via-purple-400 to-purple-500" />
             
             <CardHeader className="text-center pb-2">
               <div className="mx-auto mb-4">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg">
+                <div className="w-24 h-24 rounded-full bg-linear-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg">
                   <Vote className="w-12 h-12 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
@@ -425,7 +417,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
+    <div className="min-h-screen w-full bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4 md:p-8 flex items-center justify-center">
       <div className="w-full max-w-4xl">
         <Card className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-zinc-200 dark:border-zinc-800 shadow-2xl">
           <CardHeader className="space-y-1 p-4 md:p-6">
@@ -455,7 +447,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
           <CardContent className="p-4 md:p-6 lg:p-8">
             <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
               <div className="space-y-4">
-                <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[4/3] rounded-2xl overflow-hidden border-2 border-zinc-300 dark:border-zinc-700 bg-black shadow-inner">
+                <div className="relative w-full aspect-4/3 sm:aspect-video lg:aspect-4/3 rounded-2xl overflow-hidden border-2 border-zinc-300 dark:border-zinc-700 bg-black shadow-inner">
                   <video
                     ref={videoRef}
                     autoPlay
@@ -499,7 +491,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
                 <div className="text-center space-y-1">
                   {lightingHint ? (
                     <div className="flex items-center justify-center gap-2 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-lg">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{lightingHint}</span>
                     </div>
                   ) : (
@@ -520,7 +512,7 @@ export default function FaceGate({ onVerified }: FaceGateProps) {
                       disabled={!streaming || scanning}
                       size="lg"
                       className={cn(
-                        "w-full sm:w-auto min-w-[200px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 transition-all duration-200",
+                        "w-full sm:w-auto min-w-50 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 transition-all duration-200",
                         scanning && "opacity-70"
                       )}
                     >
