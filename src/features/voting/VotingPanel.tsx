@@ -191,16 +191,6 @@ function VotingPanel() {
         videoRef.current.srcObject = stream;
       }
       setFaceStreaming(true);
-      if (typeof window !== "undefined" && window.FaceDetector && !detectorRef.current) {
-        try {
-          detectorRef.current = new window.FaceDetector({
-            fastMode: true,
-            maxDetectedFaces: 1,
-          });
-        } catch {
-          detectorRef.current = null;
-        }
-      }
     } catch {
       setFaceError("Camera access denied. Please enable camera permissions.");
     }

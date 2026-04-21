@@ -12,7 +12,6 @@ interface FaceMatchResult {
 }
 
 const MODELS_PATH = '/models';
-const TINY_FACE_OPTIONS = { inputSize: 416, scoreThreshold: 0.5 } as const;
 const MATCH_THRESHOLD = 0.6;
 
 export function useFaceRecognition() {
@@ -20,10 +19,10 @@ export function useFaceRecognition() {
     loaded: false,
     loading: false,
     error: null,
-  });
-  
+});
+   
   const modelsLoadedRef = useRef(false);
-  const faceApiRef = useRef<typeof import('face-api.js') | null>(null);
+  const faceApiRef = useRef<unknown>(null);
 
   const loadModels = useCallback(async () => {
     if (modelsLoadedRef.current) return;
@@ -58,25 +57,23 @@ export function useFaceRecognition() {
       throw new Error('Models not loaded');
     }
 
-    const faceApi = faceApiRef.current;
+    const faceApi = faceApiRef.current as typeof import('face-api.js');
     
-    const detections = await faceApi.detectAllFaces(
-      input, 
-      new faceApi.TinyFaceDetectorOptions(TINY_FACE_OPTIONS)
-    );
+    const detections = await faceApi.detectAllFaces(input, new faceApi.TinyFaceDetectorOptions({
+      inputSize: 416,
+      scoreThreshold: 0.5
+    }));
 
     if (!detections || detections.length === 0) {
       return null;
     }
 
-    const detection = detections[0];
+    const detection = detections[0] as unknown as { descriptor: Float32Array };
     const descriptor = Array.from(detection.descriptor);
-
-    const landmarks = await faceApi.detectFaceLandmarks(input, detection);
 
     return {
       descriptor,
-      landmarks: landmarks?.positions?.map(p => ({ x: p.x, y: p.y })) || [],
+      landmarks: [],
     };
   }, []);
 
@@ -87,18 +84,19 @@ export function useFaceRecognition() {
       throw new Error('Models not loaded');
     }
 
-    const faceApi = faceApiRef.current;
+    const faceApi = faceApiRef.current as typeof import('face-api.js');
     
-    const detections = await faceApi.detectAllFaces(
-      input,
-      new faceApi.TinyFaceDetectorOptions(TINY_FACE_OPTIONS)
-    );
+    const detections = await faceApi.detectAllFaces(input, new faceApi.TinyFaceDetectorOptions({
+      inputSize: 416,
+      scoreThreshold: 0.5
+    }));
 
     if (!detections || detections.length === 0) {
       return null;
     }
 
-    return Array.from(detections[0].descriptor);
+    const detection = detections[0] as unknown as { descriptor: Float32Array };
+    return Array.from(detection.descriptor);
   }, []);
 
   const compareDescriptors = useCallback((
@@ -107,10 +105,11 @@ export function useFaceRecognition() {
   ): boolean => {
     if (!faceApiRef.current) return false;
     
+    const faceApi = faceApiRef.current as typeof import('face-api.js');
     const d1 = new Float32Array(descriptor1);
     const d2 = new Float32Array(descriptor2);
     
-    const distance = faceApiRef.current.euclideanDistance(d1, d2);
+    const distance = faceApi.euclideanDistance(d1, d2);
     return distance < MATCH_THRESHOLD;
   }, []);
 
@@ -120,10 +119,11 @@ export function useFaceRecognition() {
   ): number => {
     if (!faceApiRef.current || descriptor1.length !== descriptor2.length) return 0;
     
+    const faceApi = faceApiRef.current as typeof import('face-api.js');
     const d1 = new Float32Array(descriptor1);
     const d2 = new Float32Array(descriptor2);
     
-    const distance = faceApiRef.current.euclideanDistance(d1, d2);
+    const distance = faceApi.euclideanDistance(d1, d2);
     const similarity = Math.max(0, 1 - distance);
     
     return Math.round(similarity * 100) / 100;

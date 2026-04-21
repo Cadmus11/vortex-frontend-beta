@@ -98,15 +98,6 @@ export default function AddCandidate() {
     }
   };
 
-  useEffect(() => {
-    if (selectedElection) {
-      fetchPositions(selectedElection);
-    } else {
-      setPositions([]);
-      setIsLoadingPositions(false);
-    }
-  }, [selectedElection]);
-
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<CandidateFormValues>({
       resolver: zodResolver(candidateSchema),
@@ -121,6 +112,15 @@ export default function AddCandidate() {
 
   const selectedPosition = watch('position');
   const selectedElection = watch('electionId');
+
+  useEffect(() => {
+    if (selectedElection) {
+      fetchPositions(selectedElection);
+    } else {
+      setPositions([]);
+      setIsLoadingPositions(false);
+    }
+  }, [selectedElection]);
 
   const onSubmit = async (data: CandidateFormValues) => {
     if (isSubmitting) return;
