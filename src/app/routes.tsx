@@ -16,6 +16,7 @@ import NotFound from "@/pages/NotFound";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ForgotPasswordPage from "@/pages/PasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AdminWelcome from "@/pages/AdminWelcome";
 import SettingsPage from "@/pages/SettingsPage";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +34,7 @@ const AppProtectedRoutes = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute roles={["voter"]} />}>
         <Route path="/voter/dashboard" element={<Dashboard />} />

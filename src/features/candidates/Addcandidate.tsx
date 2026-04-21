@@ -252,7 +252,9 @@ export default function AddCandidate() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">
+                    <span className="text-red-500">*</span> Full Name
+                  </Label>
                   <Input 
                     id="name" 
                     placeholder="Enter candidate full name" 
@@ -262,7 +264,9 @@ export default function AddCandidate() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="party">Political Party</Label>
+                  <Label htmlFor="party">
+                    <span className="text-red-500">*</span> Political Party
+                  </Label>
                   <Input 
                     id="party" 
                     placeholder="e.g., Democratic Party" 
@@ -274,7 +278,9 @@ export default function AddCandidate() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Election</Label>
+                  <Label>
+                    <span className="text-red-500">*</span> Election
+                  </Label>
                   <Select onValueChange={(value) => setValue('electionId', value)} value={selectedElection}>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingElections ? "Loading..." : "Select election"} />
@@ -289,7 +295,9 @@ export default function AddCandidate() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Position</Label>
+                  <Label>
+                    <span className="text-red-500">*</span> Position
+                  </Label>
                   <Select onValueChange={(value) => setValue('position', value)} value={selectedPosition}>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingPositions ? "Loading..." : "Select position"} />
@@ -305,11 +313,13 @@ export default function AddCandidate() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="manifesto">Campaign Manifesto</Label>
+                <Label htmlFor="manifesto">
+                  <span className="text-red-500">*</span> Campaign Manifesto
+                </Label>
                 <Textarea 
                   id="manifesto" 
                   placeholder="State your vision and plans if elected..." 
-                  className="min-h-30"
+                  className="min-h-[120px]"
                   {...register('manifesto')} 
                 />
                 {errors.manifesto && <p className="text-sm text-red-500">{errors.manifesto.message}</p>}
@@ -317,15 +327,54 @@ export default function AddCandidate() {
 
               <div className="space-y-3">
                 <Label>Candidate Photo</Label>
-                <div className="flex items-center gap-4">
-                  <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-700 transition">
-                    <Upload className="w-4 h-4" />
-                    Upload Photo
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  </label>
-                  {imagePreview && (
-                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-md border border-zinc-300 dark:border-zinc-700" />
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      id="candidate-image"
+                      onChange={handleImageUpload} 
+                    />
+                    <label 
+                      htmlFor="candidate-image" 
+                      className="cursor-pointer flex flex-col items-center gap-3"
+                    >
+                      <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                        <Upload className="w-6 h-6 text-zinc-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-zinc-700 dark:text-zinc-300">Click to upload image</p>
+                        <p className="text-sm text-zinc-500">PNG, JPG up to 5MB</p>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {imagePreview ? (
+                      <div className="relative w-full max-w-[200px] aspect-square rounded-lg overflow-hidden border-2 border-zinc-200 dark:border-zinc-700">
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover" 
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setImagePreview(null);
+                            setSelectedImageFile(null);
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <Upload className="w-4 h-4 rotate-45" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full max-w-[200px] aspect-square rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border-2 border-dashed border-zinc-300 dark:border-zinc-700">
+                        <p className="text-zinc-400 text-sm">No image selected</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
