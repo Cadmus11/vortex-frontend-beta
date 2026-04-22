@@ -47,16 +47,6 @@ interface Election {
   endDate?: string;
 }
 
-interface FaceDetectorAPI {
-  detect: (source: HTMLVideoElement) => Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
-}
-
-declare global {
-  interface Window {
-    FaceDetector: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorAPI;
-  }
-}
-
 function VotingPanel() {
   const { user, accessToken } = useAuth();
   const [activeElection, setActiveElection] = useState<Election | null>(null);

@@ -31,21 +31,3 @@ export const voterList = [
   { title: "Settings", link: "/settings", icon: Settings }
 ];
 
-
-// export const navList = [
-//   { title: "Dashboard", link: '/admin/dashboard' },
-//   { title: "Elections", link: '/admin/election' },
-//   { title: "Positions", link: '/admin/positions' },
-//   { title: "Candidates", link: '/admin/candidates' },
-//   { title: "Users", link: '/admin/users' },
-//   { title: "Face Verification", link: '/admin/face-verification' },
-//   { title: "Cast Vote", link: '/admin/cast-vote' },
-//   { title: "Campaigns", link: '/admin/campaigns' },
-// ]
-
-// export const voterList = [
-//   { title: "Dashboard", link: '/voter/dashboard' },
-//   { title: "Cast Vote", link: '/voter/cast-vote' },
-//   { title: "Campaigns", link: '/voter/campaigns' },
-//   { title: "Face Verification", link: '/voter/face-verification' },
-// ]
