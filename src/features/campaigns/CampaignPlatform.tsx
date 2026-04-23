@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { useAuth } from "@/hooks/useAuth";
 import { useAuth as useAuthContext } from "@/context/AuthContext";
-import { Heart, Users, Loader2 } from "lucide-react";
+import { Heart, Users, Loader2, X } from "lucide-react";
 import { API_URL } from "../../config/api";
 
 type CampaignCandidate = {
@@ -26,11 +26,7 @@ const CampaignPlatform = () => {
   const [loading, setLoading] = useState(true);
   const [supporting, setSupporting] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchCampaignCandidates();
-  }, []);
-
-const fetchCampaignCandidates = async () => {
+  const fetchCampaignCandidates = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken');
       const res = await fetch(`${API_URL}/campaigns/candidates`, {
@@ -63,7 +59,7 @@ const fetchCampaignCandidates = async () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [refreshToken]);
 
   const handleSupport = async (candidateId: string) => {
     if (!user) {
@@ -73,10 +69,14 @@ const fetchCampaignCandidates = async () => {
 
     setSupporting(candidateId);
     try {
+      const token = localStorage.getItem('accessToken');
       const res = await fetch(`${API_URL}/campaigns/support`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ candidateId, userId: user.id }),
       });
 
@@ -103,6 +103,10 @@ const fetchCampaignCandidates = async () => {
     }
   };
 
+  useEffect(() => {
+    fetchCampaignCandidates();
+  }, [fetchCampaignCandidates]);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -120,7 +124,6 @@ const fetchCampaignCandidates = async () => {
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="secondary" className="text-sm">Campaign Mode</Badge>
-         
           </div>
         </header>
 
@@ -159,11 +162,13 @@ const fetchCampaignCandidates = async () => {
                         {candidate.position}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline" className="flex items-center gap-1">
+                  </div>
+                  {candidate.supportCount > 0 && (
+                    <Badge variant="outline" className="flex items-center gap-1 mt-2">
                       <Heart className="h-3 w-3 text-red-500" />
                       {candidate.supportCount}
                     </Badge>
-                  </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground line-clamp-4">
@@ -182,8 +187,8 @@ const fetchCampaignCandidates = async () => {
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : candidate.isSupported ? (
                       <>
-                        <Heart className="mr-2 h-4 w-4 fill-current" />
-                        Supported
+                        <X className="mr-2 h-4 w-4" />
+                        Revoke
                       </>
                     ) : (
                       <>
