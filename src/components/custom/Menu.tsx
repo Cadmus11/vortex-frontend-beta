@@ -14,6 +14,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -78,6 +79,9 @@ const MenuSheet = () => {
 
       <SheetContent side="left" className="w-70 p-0 flex flex-col">
         <SheetHeader className="p-4 pb-0">
+          <SheetDescription className="sr-only">
+            Navigation menu
+          </SheetDescription>
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
               <User className="h-5 w-5 text-primary" />

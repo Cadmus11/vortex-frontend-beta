@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useAuth as useAuthContext } from "@/context/AuthContext";
 import { Heart, Users, Loader2 } from "lucide-react";
 import { API_URL } from "../../config/api";
 
@@ -20,6 +21,7 @@ type CampaignCandidate = {
 
 const CampaignPlatform = () => {
   const { user } = useAuth();
+  const { refreshToken } = useAuthContext();
   const [candidates, setCandidates] = useState<CampaignCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [supporting, setSupporting] = useState<string | null>(null);
@@ -28,19 +30,36 @@ const CampaignPlatform = () => {
     fetchCampaignCandidates();
   }, []);
 
-  const fetchCampaignCandidates = async () => {
+const fetchCampaignCandidates = async () => {
     try {
+      const token = localStorage.getItem('accessToken');
       const res = await fetch(`${API_URL}/campaigns/candidates`, {
-        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
       });
       if (res.ok) {
         const response = await res.json();
         if (response.success) {
           setCandidates(response.data);
         }
+      } else if (res.status === 401) {
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          const newToken = localStorage.getItem('accessToken');
+          const retryRes = await fetch(`${API_URL}/campaigns/candidates`, {
+            headers: { Authorization: `Bearer ${newToken}` },
+            credentials: 'include',
+          });
+          if (retryRes.ok) {
+            const response = await retryRes.json();
+            if (response.success) {
+              setCandidates(response.data);
+            }
+          }
+        }
       }
     } catch (err) {
-      console.error("Failed to fetch campaign candidates:", err);
+      console.error('Failed to fetch campaign candidates:', err);
     } finally {
       setLoading(false);
     }
