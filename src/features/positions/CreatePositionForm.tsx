@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/utils/api";
+import { useApi } from "@/utils/api";
 
 interface Election {
   id: string;
@@ -11,6 +11,7 @@ interface CreatePositionFormProps {
 }
 
 export default function CreatePositionForm({ onCreated }: CreatePositionFormProps) {
+  const { api } = useApi();
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -23,7 +24,7 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
   useEffect(() => {
     const fetchElections = async () => {
       try {
-        const res = await api("/elections", { method: "GET" });
+        const res = await api("/elections");
 
         if (!res.ok) throw new Error("Failed to fetch elections");
 
@@ -37,7 +38,7 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
     };
 
     fetchElections();
-  }, []);
+  }, [api]);
 
   // ✅ Validation
   const canSubmit = useMemo(() => {
