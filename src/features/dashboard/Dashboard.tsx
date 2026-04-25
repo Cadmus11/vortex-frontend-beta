@@ -86,18 +86,25 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken])
 
-  const nextElection = elections
-    .filter((e) => new Date(e.startDate) > new Date())
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0]
+const getCountdown = (election: Election) => {
+    const start = new Date(election.startDate);
+    const now = new Date();
+    if (start <= now) return "Started";
+    const diff = start.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}d ${hours}h`;
+  };
 
-  const getCountdown = () => {
-    if (!nextElection) return "—"
-    const diff = new Date(nextElection.startDate).getTime() - Date.now()
-    if (diff <= 0) return "Started"
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-    return `${days}d ${hours}h`
-  }
+  const getTimeRemaining = (election: Election) => {
+    const end = new Date(election.endDate);
+    const now = new Date();
+    if (end <= now) return "Ended";
+    const diff = end.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}d ${hours}h`;
+  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -160,21 +167,32 @@ export default function Dashboard() {
               {elections.length === 0 ? (
                 <p className="text-zinc-500 text-center py-4">No elections found</p>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {elections.map((election) => (
                     <div
                       key={election.id}
-                      className="flex justify-between items-center p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800"
+                      className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
                     >
-                      <div>
-                        <p className="font-medium">{election.title}</p>
-                        <p className="text-sm text-zinc-500">
-                          {formatDate(election.startDate)} - {formatDate(election.endDate)}
-                        </p>
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100">{election.title}</p>
+                        <Badge variant={election.status === 'active' ? "default" : "secondary"}>
+                          {election.status}
+                        </Badge>
                       </div>
-                      <Badge variant={election.status === 'active' ? "default" : "secondary"}>
-                        {election.status}
-                      </Badge>
+                      <p className="text-sm text-zinc-500 mb-2">
+                        {formatDate(election.startDate)} - {formatDate(election.endDate)}
+                      </p>
+                      {election.status === 'active' ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="w-4 h-4 text-orange-500" />
+                          <span className="text-orange-600 dark:text-orange-400">Ends in: {getTimeRemaining(election)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="w-4 h-4 text-blue-500" />
+                          <span className="text-blue-600 dark:text-blue-400">Starts in: {getCountdown(election)}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -182,19 +200,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {nextElection && (
-            <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-              <CardContent className="flex justify-between items-center py-4">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-blue-600" />
-                  <span>Next Election: <strong>{nextElection.title}</strong></span>
-                </div>
-                <div className="text-lg font-bold text-blue-600">
-                  {getCountdown()}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          
         </>
       )}
     </div>

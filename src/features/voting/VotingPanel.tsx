@@ -93,7 +93,10 @@ function VotingPanel() {
           const electionsData: Election[] = electionsPayload?.success && Array.isArray(electionsPayload.data) ? electionsPayload.data : [];
           
           const active = electionsData.find((e: Election) => e.status === 'active');
-          const upcoming = electionsData.find((e: Election) => e.status === 'draft' || new Date(e.startDate || '') > new Date());
+          const sortedUpcoming = electionsData
+            .filter((e: Election) => e.status === 'draft' && new Date(e.startDate || '') > new Date())
+            .sort((a: Election, b: Election) => new Date(a.startDate || '').getTime() - new Date(b.startDate || '').getTime());
+          const upcoming = sortedUpcoming[0] || null;
           
           if (mounted) {
             setActiveElection(active || null);
@@ -110,37 +113,37 @@ function VotingPanel() {
                   setHasVoted(true);
                 }
               }
+              
+              const resPos = await fetch(`${API_URL}/positions?electionId=${active.id}`, {
+                credentials: 'include',
+                headers: getAuthHeaders(),
+              });
+              if (resPos.ok) {
+                const posRes = await resPos.json();
+                if (!mounted || !posRes.success) return;
+                const positionsList: Position[] = posRes.data.map((p: PositionResponse) => ({ 
+                  id: p.id ?? p.positionId ?? p.name ?? '', 
+                  name: p.name ?? p.positionName ?? '',
+                  electionId: active.id,
+                }));
+                setPositions(positionsList);
+                const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, {
+                  credentials: 'include',
+                  headers: getAuthHeaders(),
+                }).then(async r => {
+                  if (!r.ok) return [];
+                  const data = await r.json();
+                  return data.success ? data.data : [];
+                }));
+                const results = await Promise.all(fetches);
+                const m: Record<string, Candidate[]> = {};
+                positionsList.forEach((p, idx) => {
+                  m[p.id] = results[idx] as Candidate[] ?? [];
+                });
+                if (mounted) setCandsByPos(m);
+              }
             }
           }
-        }
-        
-        const resPos = await fetch(`${API_URL}/positions`, {
-          credentials: 'include',
-          headers: getAuthHeaders(),
-        });
-        if (resPos.ok) {
-          const posRes = await resPos.json();
-          if (!mounted || !posRes.success) return;
-          const positionsList: Position[] = posRes.data.map((p: PositionResponse) => ({ 
-            id: p.id ?? p.positionId ?? p.name ?? '', 
-            name: p.name ?? p.positionName ?? '',
-            electionId: p.electionId,
-          }));
-          setPositions(positionsList);
-          const fetches = positionsList.map(p => fetch(`${API_URL}/candidates/${p.id}`, {
-            credentials: 'include',
-            headers: getAuthHeaders(),
-          }).then(async r => {
-            if (!r.ok) return [];
-            const data = await r.json();
-            return data.success ? data.data : [];
-          }));
-          const results = await Promise.all(fetches);
-          const m: Record<string, Candidate[]> = {};
-          positionsList.forEach((p, idx) => {
-            m[p.id] = results[idx] as Candidate[] ?? [];
-          });
-          if (mounted) setCandsByPos(m);
         }
       } catch {
         // ignore for lightweight demo

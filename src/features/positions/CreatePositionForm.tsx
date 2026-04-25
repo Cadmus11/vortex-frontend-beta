@@ -20,7 +20,6 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
   const [candidateCount, setCandidateCount] = useState<number>(0);
   const [message, setMessage] = useState<string | null>(null);
 
-  // 🔄 Fetch elections
   useEffect(() => {
     const fetchElections = async () => {
       try {
@@ -39,6 +38,26 @@ export default function CreatePositionForm({ onCreated }: CreatePositionFormProp
 
     fetchElections();
   }, [api]);
+
+  useEffect(() => {
+    if (!selectedElection) return;
+    
+    const fetchPositionsForElection = async () => {
+      try {
+        const res = await api(`/positions?electionId=${selectedElection}`);
+        if (res.ok) {
+          const payload = await res.json();
+          const existingPositions = payload.success ? payload.data : [];
+          const count = Array.isArray(existingPositions) ? existingPositions.length : 0;
+          setCandidateCount(count > 0 ? count : 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    
+    fetchPositionsForElection();
+  }, [selectedElection, api]);
 
   // ✅ Validation
   const canSubmit = useMemo(() => {
