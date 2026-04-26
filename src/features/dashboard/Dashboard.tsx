@@ -106,6 +106,10 @@ const getCountdown = (election: Election) => {
     return `${days}d ${hours}h`;
   };
 
+  const isElectionExpired = (election: Election) => {
+    return new Date(election.endDate) <= new Date();
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
@@ -175,9 +179,13 @@ const getCountdown = (election: Election) => {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <p className="font-semibold text-zinc-900 dark:text-zinc-100">{election.title}</p>
-                        <Badge variant={election.status === 'active' ? "default" : "secondary"}>
-                          {election.status}
-                        </Badge>
+                        {isElectionExpired(election) ? (
+                          <Badge className="bg-red-500 text-white">completed</Badge>
+                        ) : (
+                          <Badge variant={election.status === 'active' ? "default" : "secondary"}>
+                            {election.status}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-zinc-500 mb-2">
                         {formatDate(election.startDate)} - {formatDate(election.endDate)}
@@ -186,6 +194,11 @@ const getCountdown = (election: Election) => {
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="w-4 h-4 text-orange-500" />
                           <span className="text-orange-600 dark:text-orange-400">Ends in: {getTimeRemaining(election)}</span>
+                        </div>
+                      ) : isElectionExpired(election) ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="w-4 h-4 text-red-500" />
+                          <span className="text-red-600 dark:text-red-400">Election ended</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 text-sm">

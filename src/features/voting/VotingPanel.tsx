@@ -56,6 +56,7 @@ function VotingPanel() {
   const [selected, setSelected] = useState<Record<string, string | null>>({});
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [toast, setToast] = useState<{ open: boolean; title?: string; message?: string; variant?: 'success'|'info'|'warning'|'error' }>({ open: false });
   
   const [faceModalOpen, setFaceModalOpen] = useState(false);
@@ -154,6 +155,52 @@ function VotingPanel() {
     return () => { mounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
+
+  useEffect(() => {
+    if (!activeElection || hasVoted) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const headers = getAuthHeaders();
+        const electionsRes = await fetch(`${API_URL}/elections`, {
+          credentials: 'include',
+          headers,
+        });
+        if (!electionsRes.ok) return;
+        
+        const payload = await electionsRes.json();
+        const electionsData: Election[] = payload?.success && Array.isArray(payload.data) ? payload.data : [];
+        const currentActive = electionsData.find((e: Election) => e.status === 'active');
+        
+        if (currentActive?.id !== activeElection.id) {
+          setActiveElection(null);
+          setPositions([]);
+          setCandsByPos({});
+          setLastUpdated(new Date());
+          return;
+        }
+        
+        setLastUpdated(new Date());
+        
+        if (currentActive) {
+          const voteRes = await fetch(`${API_URL}/votes/check?electionId=${currentActive.id}`, {
+            credentials: 'include',
+            headers,
+          });
+          if (voteRes.ok) {
+            const voteData = await voteRes.json();
+            if (voteData.hasVoted) {
+              setHasVoted(true);
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [activeElection, hasVoted, getAuthHeaders]);
 
   useEffect(() => {
     if (modelsLoaded) return;
@@ -558,6 +605,11 @@ function VotingPanel() {
           <Check className="ring-1 rounded-full p-2 text-green-400" /> Voting Panel
         </h1>
         <div className="flex gap-4 items-center">
+          {lastUpdated && (
+            <span className="text-xs text-white/50">
+              Updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
           {activeElection && (
             <Badge variant="outline" className="text-white border-white/30">
               {activeElection.title}
